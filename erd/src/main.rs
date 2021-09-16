@@ -1,4 +1,5 @@
 mod ast;
+mod dot;
 mod parser;
 
 extern crate pest;
