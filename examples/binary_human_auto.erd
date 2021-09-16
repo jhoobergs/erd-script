@@ -1,0 +1,7 @@
+entity Mens
+
+entity Auto
+
+relation Bezit
+  one required Mens
+  multiple optional Auto

@@ -1,0 +1,7 @@
+entity Mens
+
+entity Tand
+
+relation Bezit
+  one required Mens
+  multiple optional Tand

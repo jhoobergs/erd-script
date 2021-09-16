@@ -1,0 +1,10 @@
+entity Vader
+
+entity Moeder
+
+entity Kind
+
+relation VormenGezin(Vormen Gezin)
+  one required Vader
+  one required Moeder
+  one required Kind

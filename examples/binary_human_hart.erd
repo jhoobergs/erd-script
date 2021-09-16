@@ -1,0 +1,7 @@
+entity Mens
+
+entity Hart
+
+relation Heeft
+  one required Mens
+  one required Hart

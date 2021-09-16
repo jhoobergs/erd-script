@@ -1,0 +1,7 @@
+entity Student
+
+entity Vak
+
+relation Ingeschreven(Is ingeschreven voor)
+  multiple optional Student
+  multiple required Vak

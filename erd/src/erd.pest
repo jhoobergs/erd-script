@@ -1,0 +1,21 @@
+WHITESPACE = _{ " " | "\t" }
+
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+attribute_prefix = { "attribute" | "id" }
+attribute = { attribute_prefix ~ ident } 
+entity = { "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ attribute)* }
+
+relation_name = {  (!")" ~ ANY)* }
+relation = { "relation" ~ ident ~ ("(" ~ relation_name ~ ")")? ~ ((!"\n\n" ~ "\n") ~ relation_part)+ }
+
+relation_part = { cardinality ~ optionality ~ ident }
+cardinality = { "multiple" | "one" | ("exactly(" ~ ASCII_DIGIT+ ~ ")" ) }
+optionality = { "optional" | "required" }
+
+expression = { entity | relation }
+
+erd = _{ SOI ~ "\n"* ~ expression ~ ("\n"{2,} ~ expression)* ~ "\n"* ~ EOI }
+

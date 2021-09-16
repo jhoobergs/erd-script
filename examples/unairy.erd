@@ -1,0 +1,5 @@
+entity Student
+
+relation Teachers
+  one optional Student
+  multiple optional Student
