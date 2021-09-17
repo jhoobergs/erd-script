@@ -69,71 +69,64 @@ pub struct Entity {
     attributes: Vec<Attribute>,
 }
 
-impl ToDot for Attribute {
-    fn to_dot_statements(&self) -> Vec<dot::Statement> {
-        let mut statements = Vec::new();
-
+impl Attribute {
+    fn to_dot_statements(&self, entity: Ident) -> Vec<dot::Statement> {
         let mut attributes = vec![dot::AListItem {
             key: "shape".into(),
             value: "ellipse".into(),
         }];
 
-        if let Attribute::Key(i) = self {
-            let s: String = i.clone().into();
-            attributes.push(dot::AListItem {
-                key: "label".into(),
-                value: format!("<<U>{}</U>>", s),
-            });
-        }
-
-        statements.push(dot::Statement::Attribute(dot::AttributeStatement {
-            r#type: dot::AttributeStatementType::Node,
-
-            attributes: dot::AttributeList {
+        let attribute_name: String = self.get_ident().into();
+        attributes.push(dot::AListItem {
+            key: "label".into(),
+            value: if let Attribute::Key(_) = self {
+                format!("<<U>{}</U>>", attribute_name)
+            } else {
+                attribute_name.clone()
+            },
+        });
+        let entity_name: String = entity.into();
+        vec![dot::Statement::Node(dot::NodeStatement {
+            node: format!("{}_{}", entity_name, attribute_name),
+            attributes: Some(dot::AttributeList {
                 content: dot::AList(attributes),
                 tail: Box::new(None),
-            },
-        }));
-
-        statements.push(dot::Statement::Node(dot::NodeStatement {
-            node: self.get_ident().into(),
-            attributes: None,
-        }));
-
-        statements
+            }),
+        })]
     }
 }
 
 impl ToDot for Entity {
     fn to_dot_statements(&self) -> Vec<dot::Statement> {
-        let entity_node_attribute = dot::Statement::Attribute(dot::AttributeStatement {
-            r#type: dot::AttributeStatementType::Node,
-
-            attributes: dot::AttributeList {
+        let entity_node = dot::Statement::Node(dot::NodeStatement {
+            node: self.name.clone().into(),
+            attributes: Some(dot::AttributeList {
                 content: dot::AList(vec![dot::AListItem {
                     key: "shape".into(),
                     value: "box".into(),
                 }]),
                 tail: Box::new(None),
-            },
+            }),
         });
 
-        let entity_node = dot::Statement::Node(dot::NodeStatement {
-            node: self.name.clone().into(),
-            attributes: None,
-        });
-
-        let mut statements = vec![entity_node_attribute, entity_node];
+        let mut statements = vec![entity_node];
 
         // draw attributes
-        statements.extend(self.attributes.to_dot_statements());
+        statements.extend(
+            self.attributes
+                .iter()
+                .flat_map(|a| a.to_dot_statements(self.name.clone())),
+        );
+
+        let entity_name: String = self.name.clone().into();
         // Draw attribute lines
         for attribute in self.attributes.iter() {
+            let attribute_name: String = attribute.get_ident().into();
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
                 left: self.name.clone().into(),
                 right: dot::EdgeRHS {
                     r#type: dot::EdgeType::Directional,
-                    id: attribute.get_ident().into(),
+                    id: format!("{}_{}", entity_name, attribute_name),
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
@@ -160,10 +153,10 @@ pub struct Relation {
 impl ToDot for Relation {
     fn to_dot_statements(&self) -> Vec<dot::Statement> {
         let relation_name: String = self.name.clone().into();
-        let relation_node_attribute = dot::Statement::Attribute(dot::AttributeStatement {
-            r#type: dot::AttributeStatementType::Node,
 
-            attributes: dot::AttributeList {
+        let relation_node = dot::Statement::Node(dot::NodeStatement {
+            node: relation_name.clone(),
+            attributes: Some(dot::AttributeList {
                 content: dot::AList(vec![
                     dot::AListItem {
                         key: "shape".into(),
@@ -171,37 +164,30 @@ impl ToDot for Relation {
                     },
                     dot::AListItem {
                         key: "label".into(),
-                        value: format!(
-                            "\"{} ({})\"",
-                            relation_name.clone(),
-                            self.members
-                                .iter()
-                                .map(|m| m.cardinality.get_amount())
-                                .collect::<Vec<_>>()
-                                .join(":")
-                        ),
+                        value: format!("{}", relation_name.clone(),),
                     },
                 ]),
                 tail: Box::new(None),
-            },
+            }),
         });
 
-        let relation_node = dot::Statement::Node(dot::NodeStatement {
-            node: relation_name.clone(),
-            attributes: None,
-        });
-
-        let mut statements = vec![relation_node_attribute, relation_node];
+        let mut statements = vec![relation_node];
 
         // draw attributes
-        statements.extend(self.attributes.to_dot_statements());
+        statements.extend(
+            self.attributes
+                .iter()
+                .flat_map(|a| a.to_dot_statements(self.name.clone())),
+        );
+
         // Draw attribute lines
         for attribute in self.attributes.iter() {
+            let attribute_name: String = attribute.get_ident().into();
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
-                left: relation_name.clone(),
+                left: self.name.clone().into(),
                 right: dot::EdgeRHS {
                     r#type: dot::EdgeType::Directional,
-                    id: attribute.get_ident().into(),
+                    id: format!("{}_{}", relation_name, attribute_name),
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
@@ -224,14 +210,24 @@ impl ToDot for Relation {
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
-                    content: dot::AList(vec![dot::AListItem {
-                        key: "arrowhead".into(),
-                        value: match member.optionality {
-                            RelationOptionality::Optional => "odot",
-                            RelationOptionality::Required => "tee",
-                        }
-                        .into(),
-                    }]),
+                    content: dot::AList(vec![
+                        dot::AListItem {
+                            key: "arrowhead".into(),
+                            value: match member.optionality {
+                                RelationOptionality::Optional => "odot",
+                                RelationOptionality::Required => "tee",
+                            }
+                            .into(),
+                        },
+                        dot::AListItem {
+                            key: "label".into(),
+                            value: member.cardinality.get_amount(),
+                        },
+                        dot::AListItem {
+                            key: "len".into(),
+                            value: "1.00".to_string(),
+                        },
+                    ]),
                     tail: Box::new(None),
                 }),
             }));
