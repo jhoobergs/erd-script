@@ -30,6 +30,7 @@ impl<'i> std::convert::From<ParserNode<'i>> for ast::Expr {
 }
 impl<'i> std::convert::From<ParserExpr> for ast::Expr {
     fn from(expr: ParserExpr) -> ast::Expr {
+        println!("{:?}", expr);
         match expr {
             ParserExpr::Entity(name, attributes) => ast::Expr::Entity(
                 name.into(),
@@ -125,16 +126,15 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                 if pair.as_rule() == Rule::relation_name {
                     let pair = pairs.next().unwrap();
                     label = Some(pair.as_str().to_string());
-                } else {
-                    for member in pairs {
-                        let mut pairs = member.into_inner();
-                        members.push((
-                            pairs.next().unwrap().as_str().to_string(),
-                            pairs.next().unwrap().as_str().to_string(),
-                            pairs.next().unwrap().as_str().to_string(),
-                        ))
-                    }
                 }
+            }
+            for member in pairs {
+                let mut pairs = member.into_inner();
+                members.push((
+                    pairs.next().unwrap().as_str().to_string(),
+                    pairs.next().unwrap().as_str().to_string(),
+                    pairs.next().unwrap().as_str().to_string(),
+                ))
             }
 
             Ok(ParserNode {
