@@ -1,14 +1,16 @@
 mod ast;
 mod dot;
+mod erd;
 mod parser;
 
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+use erd::ERD;
 use parser::ConsumeError;
 
-fn parse_file(path: &std::path::Path) -> Result<(), ConsumeError> {
+fn parse_file(path: &std::path::Path) -> Result<Vec<ast::Expr>, ConsumeError> {
     println!("{:?}", path.display());
     let content = std::fs::read_to_string(path).expect("Valid file");
     let pairs =
@@ -16,7 +18,7 @@ fn parse_file(path: &std::path::Path) -> Result<(), ConsumeError> {
     println!("{:?}", pairs);
     let asts = parser::consume_expressions(pairs)?;
     println!("{:?}\n", asts);
-    Ok(())
+    Ok(asts)
 }
 
 fn main() {

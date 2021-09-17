@@ -1,6 +1,6 @@
-use std::convert::TryInto;
+use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Ident(pub String);
 
 impl std::convert::From<String> for Ident {
@@ -13,6 +13,21 @@ impl std::convert::From<String> for Ident {
 pub enum Attribute {
     Normal(Ident),
     Key(Ident),
+}
+
+impl Attribute {
+    pub fn get_ident(&self) -> Ident {
+        match self {
+            Self::Normal(i) => i.to_owned(),
+            Self::Key(i) => i.to_owned(),
+        }
+    }
+}
+
+impl Hash for Attribute {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.get_ident().hash(state)
+    }
 }
 
 impl std::convert::From<(String, String)> for Attribute {
@@ -67,7 +82,7 @@ impl std::convert::From<String> for RelationOptionality {
 pub struct RelationMember {
     cardinality: RelationCardinality,
     optionality: RelationOptionality,
-    entity: Ident,
+    pub entity: Ident,
 }
 
 impl std::convert::From<(String, String, String)> for RelationMember {
