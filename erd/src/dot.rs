@@ -5,10 +5,10 @@ type ID = String;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Graph {
-    strict: bool,
-    r#type: GraphType,
-    id: Option<ID>,
-    statements: Vec<Statement>,
+    pub strict: bool,
+    pub r#type: GraphType,
+    pub id: Option<ID>,
+    pub statements: Vec<Statement>,
 }
 
 impl fmt::Display for Graph {
@@ -48,7 +48,7 @@ pub enum Statement {
     Node(NodeStatement),
     Edge(EdgeStatement),
     Attribute(AttributeStatement),
-    ID,       // TODO
+    ID(ID, ID),
     Subgraph, // TODO
 }
 
@@ -58,6 +58,7 @@ impl fmt::Display for Statement {
             Self::Node(s) => write!(f, "{}", s),
             Self::Edge(s) => write!(f, "{}", s),
             Self::Attribute(s) => write!(f, "{}", s),
+            Self::ID(key, val) => write!(f, "{}={}", key, val),
             _ => Ok(()), // TODO
         }
     }
@@ -65,8 +66,8 @@ impl fmt::Display for Statement {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AListItem {
-    key: ID,
-    value: ID,
+    pub key: ID,
+    pub value: ID,
 }
 
 impl fmt::Display for AListItem {
@@ -76,7 +77,7 @@ impl fmt::Display for AListItem {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AList(Vec<AListItem>);
+pub struct AList(pub Vec<AListItem>);
 
 impl fmt::Display for AList {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -96,8 +97,8 @@ impl fmt::Display for AList {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeList {
-    content: AList,
-    tail: Box<Option<AttributeList>>,
+    pub content: AList,
+    pub tail: Box<Option<AttributeList>>,
 }
 
 impl fmt::Display for AttributeList {
@@ -105,7 +106,7 @@ impl fmt::Display for AttributeList {
         if let Some(ref tail) = *self.tail {
             write!(f, "[{}] {}", self.content, tail)
         } else {
-            write!(f, "{}", self.content)
+            write!(f, "[{}]", self.content)
         }
     }
 }
@@ -114,8 +115,8 @@ type NodeId = ID; // TODO
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeStatement {
-    node: NodeId,
-    attributes: Option<AttributeList>,
+    pub node: NodeId,
+    pub attributes: Option<AttributeList>,
 }
 
 impl fmt::Display for NodeStatement {
@@ -130,9 +131,9 @@ impl fmt::Display for NodeStatement {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeStatement {
-    left: NodeId, // TODO: subgraph
-    right: EdgeRHS,
-    attributes: Option<AttributeList>,
+    pub left: NodeId, // TODO: subgraph
+    pub right: EdgeRHS,
+    pub attributes: Option<AttributeList>,
 }
 
 impl fmt::Display for EdgeStatement {
@@ -162,9 +163,9 @@ impl fmt::Display for EdgeType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeRHS {
-    r#type: EdgeType, // TODO: validate this
-    id: NodeId,       // TODO: subgraph
-    right: Box<Option<EdgeRHS>>,
+    pub r#type: EdgeType, // TODO: validate this
+    pub id: NodeId,       // TODO: subgraph
+    pub right: Box<Option<EdgeRHS>>,
 }
 
 impl fmt::Display for EdgeRHS {
@@ -179,8 +180,8 @@ impl fmt::Display for EdgeRHS {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeStatement {
-    r#type: AttributeStatementType,
-    attributes: AttributeList,
+    pub r#type: AttributeStatementType,
+    pub attributes: AttributeList,
 }
 
 impl fmt::Display for AttributeStatement {

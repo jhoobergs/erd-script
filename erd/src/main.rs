@@ -7,7 +7,6 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
-use erd::ERD;
 use parser::ConsumeError;
 
 fn parse_file(path: &std::path::Path) -> Result<Vec<ast::Expr>, ConsumeError> {
@@ -28,12 +27,17 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
+    use erd::ERD;
+    use std::convert::TryInto;
     #[test]
     fn parse_examples() -> Result<(), ConsumeError> {
         let paths = std::fs::read_dir("../examples").unwrap();
 
         for path in paths {
-            parse_file(&path.unwrap().path())?;
+            let expr = parse_file(&path.unwrap().path())?;
+            let erd: Result<ERD, _> = expr.try_into();
+            println!("{:?}", erd);
+            println!("{}", erd.unwrap().to_dot())
         }
 
         Ok(())

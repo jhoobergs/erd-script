@@ -9,6 +9,12 @@ impl std::convert::From<String> for Ident {
     }
 }
 
+impl std::convert::From<Ident> for String {
+    fn from(i: Ident) -> Self {
+        i.0
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Attribute {
     Normal(Ident),
@@ -48,6 +54,16 @@ pub enum RelationCardinality {
     Exact(usize),
 }
 
+impl RelationCardinality {
+    pub fn get_amount(&self) -> String {
+        match self {
+            Self::One => "1".to_string(),
+            Self::Multiple => "n".to_string(),
+            Self::Exact(n) => n.to_string(),
+        }
+    }
+}
+
 impl std::convert::From<String> for RelationCardinality {
     fn from(s: String) -> Self {
         if s.starts_with("exactly") {
@@ -80,8 +96,8 @@ impl std::convert::From<String> for RelationOptionality {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationMember {
-    cardinality: RelationCardinality,
-    optionality: RelationOptionality,
+    pub cardinality: RelationCardinality,
+    pub optionality: RelationOptionality,
     pub entity: Ident,
 }
 
