@@ -201,7 +201,11 @@ impl ToDot for Relation {
         }
 
         // Draw member lines
+        let mut next_multiple_amount: char = 'n';
         for member in self.members.iter() {
+            let (amount, new_next_multiple_amount) =
+                member.cardinality.get_amount(next_multiple_amount);
+            next_multiple_amount = new_next_multiple_amount;
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
                 left: self.name.clone().into(),
                 right: dot::EdgeRHS {
@@ -221,7 +225,7 @@ impl ToDot for Relation {
                         },
                         dot::AListItem {
                             key: "label".into(),
-                            value: member.cardinality.get_amount(),
+                            value: amount,
                         },
                         dot::AListItem {
                             key: "len".into(),

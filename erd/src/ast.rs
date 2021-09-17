@@ -55,11 +55,14 @@ pub enum RelationCardinality {
 }
 
 impl RelationCardinality {
-    pub fn get_amount(&self) -> String {
+    pub fn get_amount(&self, multiple_amount: char) -> (String, char) {
         match self {
-            Self::One => "1".to_string(),
-            Self::Multiple => "n".to_string(),
-            Self::Exact(n) => n.to_string(),
+            Self::One => ("1".to_string(), multiple_amount),
+            Self::Multiple => (
+                multiple_amount.to_string(),
+                (multiple_amount as u8 - 1) as char,
+            ),
+            Self::Exact(n) => (n.to_string(), multiple_amount),
         }
     }
 }
