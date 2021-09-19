@@ -30,14 +30,25 @@ mod test {
     use erd::ERD;
     use std::convert::TryInto;
     #[test]
-    fn parse_examples() -> Result<(), ConsumeError> {
+    fn compile_examples() -> Result<(), ConsumeError> {
         let paths = std::fs::read_dir("../examples").unwrap();
 
-        for path in paths {
-            let expr = parse_file(&path.unwrap().path())?;
+        for path in paths.filter(|p| {
+            p.as_ref().unwrap().path().extension() == Some(&std::ffi::OsStr::new("erd"))
+        }) {
+            let path = path.unwrap().path();
+            let expr = parse_file(&path)?;
             let erd: Result<ERD, _> = expr.try_into();
             println!("{:?}", erd);
-            println!("{}", erd.unwrap().to_dot())
+            std::fs::write("../examples/tmp.dot", erd.unwrap().to_dot().to_string())
+                .expect("failed writing");
+            let output = std::process::Command::new("dot")
+                .arg("-Tsvg")
+                .arg("../examples/tmp.dot")
+                .output()
+                .expect("failed converting with dot");
+            let new_path = path.with_extension("svg");
+            std::fs::write(new_path, output.stdout).expect("failed writing svg");
         }
 
         Ok(())
