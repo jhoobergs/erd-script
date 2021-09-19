@@ -125,14 +125,14 @@ impl ToDot for Entity {
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
                 left: self.name.clone().into(),
                 right: dot::EdgeRHS {
-                    r#type: dot::EdgeType::Directional,
+                    r#type: dot::EdgeType::Normal,
                     id: format!("{}_{}", entity_name, attribute_name),
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
                     content: dot::AList(vec![dot::AListItem {
-                        key: "dir".into(),
-                        value: "none".into(),
+                        key: "len".into(),
+                        value: "1.00".to_string(),
                     }]),
                     tail: Box::new(None),
                 }),
@@ -186,14 +186,14 @@ impl ToDot for Relation {
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
                 left: self.name.clone().into(),
                 right: dot::EdgeRHS {
-                    r#type: dot::EdgeType::Directional,
+                    r#type: dot::EdgeType::Normal,
                     id: format!("{}_{}", relation_name, attribute_name),
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
                     content: dot::AList(vec![dot::AListItem {
-                        key: "dir".into(),
-                        value: "none".into(),
+                        key: "len".into(),
+                        value: "1.00".to_string(),
                     }]),
                     tail: Box::new(None),
                 }),
@@ -209,17 +209,17 @@ impl ToDot for Relation {
             statements.push(dot::Statement::Edge(dot::EdgeStatement {
                 left: self.name.clone().into(),
                 right: dot::EdgeRHS {
-                    r#type: dot::EdgeType::Directional,
+                    r#type: dot::EdgeType::Normal,
                     id: member.entity.clone().into(),
                     right: Box::new(None),
                 },
                 attributes: Some(dot::AttributeList {
                     content: dot::AList(vec![
                         dot::AListItem {
-                            key: "arrowhead".into(),
+                            key: "color".into(),
                             value: match member.optionality {
-                                RelationOptionality::Optional => "odot",
-                                RelationOptionality::Required => "tee",
+                                RelationOptionality::Optional => "black",
+                                RelationOptionality::Required => "\"black:invis:black\"",
                             }
                             .into(),
                         },
@@ -264,11 +264,11 @@ impl std::convert::TryFrom<Vec<Expr>> for ERD {
         let relations = v
             .iter()
             .filter_map(|expr| match expr {
-                Expr::Relation(name, label, members) => Some(Relation {
+                Expr::Relation(name, label, members, attributes) => Some(Relation {
                     name: name.clone(),
                     label: label.clone(),
                     members: members.clone(),
-                    attributes: Vec::new(), // TODO
+                    attributes: attributes.clone(), // TODO
                 }),
                 _ => None,
             })
@@ -302,6 +302,28 @@ impl ToDot for ERD {
 
         statements.push(dot::Statement::ID("layout".into(), "neato".into()));
         statements.push(dot::Statement::ID("forcelabels".into(), "true".into()));
+        statements.push(dot::Statement::ID("overlap".into(), "scale".into()));
+
+        statements.push(dot::Statement::Attribute(dot::AttributeStatement {
+            r#type: dot::AttributeStatementType::Graph,
+            attributes: dot::AttributeList {
+                content: dot::AList(vec![
+                    dot::AListItem {
+                        key: "pad".into(),
+                        value: "0.5".to_string(),
+                    },
+                    dot::AListItem {
+                        key: "nodesep".into(),
+                        value: "1".to_string(),
+                    },
+                    dot::AListItem {
+                        key: "ranksep".into(),
+                        value: "2".to_string(),
+                    },
+                ]),
+                tail: Box::new(None),
+            },
+        }));
 
         statements.extend(self.entities.to_dot_statements());
         statements.extend(self.relations.to_dot_statements());
@@ -314,7 +336,7 @@ impl ERD {
     pub fn to_dot(&self) -> dot::Graph {
         dot::Graph {
             strict: false,
-            r#type: dot::GraphType::Directional,
+            r#type: dot::GraphType::Normal,
             id: None, // TODO
             statements: self.to_dot_statements(),
         }

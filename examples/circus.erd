@@ -1,0 +1,30 @@
+entity Elephant
+  attribute name
+  attribute age
+  attribute gender
+
+entity Food
+  attribute name
+
+entity Vendor
+  attribute name
+
+entity Vaccination
+  attribute name
+
+relation Sells
+  multiple required Food
+  multiple optional Vendor
+
+relation Mother(Is mother of)
+  one required Elephant
+  multiple optional Elephant
+
+relation Eats
+  multiple required Elephant
+  one required Food
+
+relation Shot(Got vaccin)
+  multiple optional Elephant
+  multiple optional Vaccination
+  attribute date

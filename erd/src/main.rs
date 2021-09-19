@@ -39,9 +39,9 @@ mod test {
             let path = path.unwrap().path();
             let expr = parse_file(&path)?;
             let erd: Result<ERD, _> = expr.try_into();
-            println!("{:?}", erd);
-            std::fs::write("../examples/tmp.dot", erd.unwrap().to_dot().to_string())
-                .expect("failed writing");
+            let dot = erd.unwrap().to_dot().to_string();
+            println!("{}", dot);
+            std::fs::write("../examples/tmp.dot", dot).expect("failed writing");
             let output = std::process::Command::new("dot")
                 .arg("-Tsvg")
                 .arg("../examples/tmp.dot")

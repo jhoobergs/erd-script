@@ -19,8 +19,13 @@ pub struct ParserNode<'i> {
 pub enum ParserExpr {
     /// (Name, Vec<("id" | "attribute", Name)> )
     Entity(String, Vec<(String, String)>),
-    /// (Name, Optional label, Vec<RelationMembers>)
-    Relation(String, Option<String>, Vec<(String, String, String)>),
+    /// (Name, Optional label, Vec<RelationMembers>, Vec<("id" | "attribute", Name)>)
+    Relation(
+        String,
+        Option<String>,
+        Vec<(String, String, String)>,
+        Vec<(String, String)>,
+    ),
 }
 
 impl<'i> std::convert::From<ParserNode<'i>> for ast::Expr {
@@ -36,10 +41,11 @@ impl<'i> std::convert::From<ParserExpr> for ast::Expr {
                 name.into(),
                 attributes.into_iter().map(|a| a.into()).collect(),
             ),
-            ParserExpr::Relation(name, label_option, members) => ast::Expr::Relation(
+            ParserExpr::Relation(name, label_option, members, attributes) => ast::Expr::Relation(
                 name.into(),
                 label_option.map(|l| l.into()),
                 members.into_iter().map(|m| m.into()).collect(),
+                attributes.into_iter().map(|m| m.into()).collect(),
             ),
         }
     }
@@ -120,6 +126,7 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
             let pair = pairs.next().unwrap();
             let name = pair.as_str().trim().to_string();
             let mut members = Vec::new();
+            let mut attributes = Vec::new();
             let mut label: Option<String> = None;
             let peek = pairs.peek();
             if let Some(pair) = peek {
@@ -128,17 +135,29 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                     label = Some(pair.as_str().to_string());
                 }
             }
-            for member in pairs {
-                let mut pairs = member.into_inner();
-                members.push((
-                    pairs.next().unwrap().as_str().to_string(),
-                    pairs.next().unwrap().as_str().to_string(),
-                    pairs.next().unwrap().as_str().to_string(),
-                ))
+            for item in pairs {
+                match item.as_rule() {
+                    Rule::member => {
+                        let mut pairs = item.into_inner();
+                        members.push((
+                            pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().unwrap().as_str().to_string(),
+                        ))
+                    }
+                    Rule::attribute => {
+                        let mut pairs = item.into_inner();
+                        attributes.push((
+                            pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().unwrap().as_str().to_string(),
+                        ))
+                    }
+                    _ => unreachable!(),
+                }
             }
 
             Ok(ParserNode {
-                expr: ParserExpr::Relation(name, label, members),
+                expr: ParserExpr::Relation(name, label, members, attributes),
                 span: pair.as_span(),
             })
         }

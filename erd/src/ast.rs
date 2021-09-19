@@ -118,6 +118,6 @@ impl std::convert::From<(String, String, String)> for RelationMember {
 pub enum Expr {
     /// Matches an entity with attributes
     Entity(Ident, Vec<Attribute>),
-    /// Matches a relation with an optional name and members
-    Relation(Ident, Option<String>, Vec<RelationMember>),
+    /// Matches a relation with an optional name, members and attributes
+    Relation(Ident, Option<String>, Vec<RelationMember>, Vec<Attribute>),
 }

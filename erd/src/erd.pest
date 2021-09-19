@@ -9,9 +9,9 @@ attribute = { attribute_prefix ~ ident }
 entity = { "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ attribute)* }
 
 relation_name = {  (!")" ~ ANY)* }
-relation = { "relation" ~ ident ~ ("(" ~ relation_name ~ ")")? ~ ((!"\n\n" ~ "\n") ~ relation_part)+ }
+relation = { "relation" ~ ident ~ ("(" ~ relation_name ~ ")")? ~ ((!"\n\n" ~ "\n") ~ (member | attribute))+ }
 
-relation_part = { cardinality ~ optionality ~ ident }
+member = { cardinality ~ optionality ~ ident }
 cardinality = { "multiple" | "one" | ("exactly(" ~ ASCII_DIGIT+ ~ ")" ) }
 optionality = { "optional" | "required" }
 
