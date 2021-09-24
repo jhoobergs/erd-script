@@ -1,5 +1,6 @@
 mod ast;
 mod dot;
+mod draw;
 mod erd;
 mod parser;
 
@@ -39,6 +40,10 @@ mod test {
             let path = path.unwrap().path();
             let expr = parse_file(&path)?;
             let erd: Result<ERD, _> = expr.try_into();
+            {
+                println!("{:#?}", erd.clone().unwrap().to_elements());
+            }
+
             let dot = erd.unwrap().to_dot().to_string();
             println!("{}", dot);
             std::fs::write("../examples/tmp.dot", dot).expect("failed writing");

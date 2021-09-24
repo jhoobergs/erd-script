@@ -1,11 +1,27 @@
 use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
+use crate::draw::{Draw, Grid, RelationElement, TextElement};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ERD {
     entities: Vec<Entity>,
     relations: Vec<Relation>,
+}
+
+impl ERD {
+    pub fn to_elements(self) -> Grid {
+        let mut grid = Grid::new();
+        let mut remaining_entities: std::collections::HashSet<_> =
+            self.entities.iter().map(|e| e.name.clone()).collect();
+        for relation in self.relations.into_iter() {
+            let element: RelationElement = relation.into();
+            // TODO: check if there are already entities of it placed
+            grid.add_circle(element.radius());
+            // TODO: add entities
+        }
+        grid
+    }
 }
 
 impl ERD {
@@ -237,6 +253,13 @@ impl ToDot for Relation {
             }));
         }
         statements
+    }
+}
+
+impl std::convert::From<Relation> for RelationElement {
+    fn from(r: Relation) -> Self {
+        let relation_name: String = r.name.into();
+        RelationElement::new(relation_name)
     }
 }
 
