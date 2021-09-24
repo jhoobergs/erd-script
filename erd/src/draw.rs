@@ -1,3 +1,6 @@
+use plotters::prelude::Circle as PlotCircle;
+use plotters::prelude::*;
+
 #[derive(Debug, Clone)]
 pub struct Grid(Vec<Circle>);
 
@@ -5,16 +8,16 @@ impl Grid {
     pub fn new() -> Grid {
         Grid(Vec::new())
     }
-    pub fn add_circle(&mut self, radius: f64) {
+    pub fn add_circle(&mut self, radius: isize) {
         if self.0.is_empty() {
             self.0.push(Circle {
-                center: Point { x: 0.0, y: 0.0 },
+                center: Point { x: 0, y: 0 },
                 radius,
             })
         } else {
             let mut new_circle = None;
             for circle in self.0.iter() {
-                for (x_change, y_change) in vec![(1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0)] {
+                for (x_change, y_change) in vec![(1, 0), (0, 1), (-1, 0), (0, -1)] {
                     let possible_center = circle.center.moved(
                         x_change * (circle.radius + radius),
                         y_change * (circle.radius + radius),
@@ -44,35 +47,68 @@ impl Grid {
         return true;
     }
     // Moved grid so nothing is left or above coordinate 0
-    pub fn normalized(&self) -> Grid {
+    pub fn normalized(&self) -> NormalizedGrid {
         if self.0.is_empty() {
-            return Grid(Vec::new());
+            return NormalizedGrid(Vec::new());
         }
         let min_x = self
             .0
             .iter()
             .map(|c| c.center.x - c.radius)
-            .fold(f64::INFINITY, |a, b| if a > b { b } else { a });
+            .min()
+            .expect("Missing circles?");
         let min_y = self
             .0
             .iter()
             .map(|c| c.center.y - c.radius)
-            .fold(f64::INFINITY, |a, b| if a > b { b } else { a });
-        Grid(self.0.iter().map(|c| c.moved(-min_x, -min_y)).collect())
+            .min()
+            .expect("Missing circles?");
+        NormalizedGrid(self.0.iter().map(|c| c.moved(-min_x, -min_y)).collect())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NormalizedGrid(Vec<Circle>);
+
+impl NormalizedGrid {
+    pub fn draw(&self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+        let max_x = self
+            .0
+            .iter()
+            .map(|c| c.center.x + c.radius)
+            .max()
+            .expect("Missing circles") as u32;
+        let max_y = self
+            .0
+            .iter()
+            .map(|c| c.center.y + c.radius)
+            .max()
+            .expect("Missing circles") as u32;
+        let root = BitMapBackend::new(path, (max_x, max_y)).into_drawing_area();
+        root.fill(&WHITE)?;
+
+        for circle in self.0.iter() {
+            root.draw(&PlotCircle::new(
+                (circle.center.x as i32, circle.center.y as i32),
+                circle.radius as i32,
+                Into::<ShapeStyle>::into(&BLACK),
+            ))?;
+        }
+        Ok(())
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
-    x: f64,
-    y: f64,
+    x: isize,
+    y: isize,
 }
 
 impl Point {
     fn distance(&self, other: &Point) -> f64 {
-        ((self.x - other.x).powf(2.0) + (self.y - other.y).powf(2.0)).sqrt()
+        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f64).sqrt()
     }
-    fn moved(&self, x: f64, y: f64) -> Point {
+    fn moved(&self, x: isize, y: isize) -> Point {
         Point {
             x: x + self.x,
             y: y + self.y,
@@ -83,15 +119,15 @@ impl Point {
 #[derive(Debug, Clone, Copy)]
 pub struct Circle {
     center: Point,
-    radius: f64,
+    radius: isize,
 }
 
 impl Circle {
     fn overlaps_with(&self, other: &Circle) -> bool {
         let distance = self.center.distance(&other.center);
-        distance < self.radius + other.radius
+        distance < (self.radius + other.radius) as f64
     }
-    fn moved(&self, x: f64, y: f64) -> Circle {
+    fn moved(&self, x: isize, y: isize) -> Circle {
         Circle {
             center: self.center.moved(x, y),
             radius: self.radius,
@@ -100,7 +136,7 @@ impl Circle {
 }
 
 pub trait Draw {
-    fn radius(&self) -> f64;
+    fn radius(&self) -> isize;
 }
 
 #[derive(Debug, Clone)]
@@ -109,12 +145,12 @@ pub struct TextElement {
 }
 
 impl TextElement {
-    fn height() -> f64 {
-        20.0 // TODO
+    fn height() -> isize {
+        20 // TODO
     }
 
-    fn width(&self) -> f64 {
-        (self.content.len() * 10) as f64 // TODO
+    fn width(&self) -> isize {
+        self.content.len() as isize * 10 // TODO
     }
 
     pub fn new(content: String) -> Self {
@@ -123,13 +159,13 @@ impl TextElement {
 }
 
 impl Draw for TextElement {
-    fn radius(&self) -> f64 {
+    fn radius(&self) -> isize {
         let largest = if Self::height() > self.width() {
             Self::height()
         } else {
             self.width()
         };
-        largest / 2.0
+        largest / 2
     }
 }
 
@@ -149,7 +185,7 @@ impl EntityElement {
 }
 
 impl Draw for EntityElement {
-    fn radius(&self) -> f64 {
+    fn radius(&self) -> isize {
         self.name.radius()
     }
 }
@@ -168,7 +204,7 @@ impl AttributeElement {
 }
 
 impl Draw for AttributeElement {
-    fn radius(&self) -> f64 {
+    fn radius(&self) -> isize {
         self.name.radius()
     }
 }
@@ -187,7 +223,7 @@ impl RelationElement {
 }
 
 impl Draw for RelationElement {
-    fn radius(&self) -> f64 {
+    fn radius(&self) -> isize {
         self.name.radius()
     }
 }

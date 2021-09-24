@@ -41,7 +41,10 @@ mod test {
             let expr = parse_file(&path)?;
             let erd: Result<ERD, _> = expr.try_into();
             {
-                println!("{:#?}", erd.clone().unwrap().to_elements());
+                let elements = erd.clone().unwrap().to_elements();
+                let new_path = path.with_extension("png");
+                println!("{:#?}", elements);
+                elements.draw(&new_path).expect("failed drawing");
             }
 
             let dot = erd.unwrap().to_dot().to_string();

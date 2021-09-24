@@ -1,6 +1,6 @@
 use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
-use crate::draw::{Draw, EntityElement, Grid, RelationElement, TextElement};
+use crate::draw::{Draw, EntityElement, Grid, NormalizedGrid, RelationElement, TextElement};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,7 +10,7 @@ pub struct ERD {
 }
 
 impl ERD {
-    pub fn to_elements(self) -> Grid {
+    pub fn to_elements(self) -> NormalizedGrid {
         let mut grid = Grid::new();
         let mut remaining_entities: std::collections::HashSet<_> =
             self.entities.iter().map(|e| e.name.clone()).collect();
