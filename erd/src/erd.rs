@@ -1,6 +1,6 @@
 use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
-use crate::draw::{Draw, Grid, RelationElement, TextElement};
+use crate::draw::{Draw, EntityElement, Grid, RelationElement, TextElement};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,12 +15,39 @@ impl ERD {
         let mut remaining_entities: std::collections::HashSet<_> =
             self.entities.iter().map(|e| e.name.clone()).collect();
         for relation in self.relations.into_iter() {
+            let entities: Vec<_> = relation.members.iter().map(|e| e.entity.clone()).collect();
             let element: RelationElement = relation.into();
             // TODO: check if there are already entities of it placed
             grid.add_circle(element.radius());
             // TODO: add entities
+            for entity_ident in entities {
+                let entity = self
+                    .entities
+                    .iter()
+                    .find(|r| r.name == entity_ident)
+                    .unwrap()
+                    .to_owned();
+                let name = entity_ident.into();
+                if remaining_entities.contains(&name) {
+                    remaining_entities.remove(&name);
+                    let element: EntityElement = entity.into();
+                    grid.add_circle(element.radius());
+                }
+            }
         }
-        grid
+
+        // Add other entitities
+        for entity_ident in remaining_entities.into_iter() {
+            let entity = self
+                .entities
+                .iter()
+                .find(|r| r.name == entity_ident)
+                .unwrap()
+                .to_owned();
+            let element: EntityElement = entity.into();
+            grid.add_circle(element.radius());
+        }
+        grid.normalized()
     }
 }
 
@@ -83,6 +110,13 @@ impl ERD {
 pub struct Entity {
     name: Ident,
     attributes: Vec<Attribute>,
+}
+
+impl std::convert::From<Entity> for EntityElement {
+    fn from(e: Entity) -> Self {
+        let entity_name: String = e.name.into();
+        EntityElement::new(entity_name)
+    }
 }
 
 impl Attribute {

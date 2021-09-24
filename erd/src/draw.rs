@@ -43,6 +43,23 @@ impl Grid {
         }
         return true;
     }
+    // Moved grid so nothing is left or above coordinate 0
+    pub fn normalized(&self) -> Grid {
+        if self.0.is_empty() {
+            return Grid(Vec::new());
+        }
+        let min_x = self
+            .0
+            .iter()
+            .map(|c| c.center.x - c.radius)
+            .fold(f64::INFINITY, |a, b| if a > b { b } else { a });
+        let min_y = self
+            .0
+            .iter()
+            .map(|c| c.center.y - c.radius)
+            .fold(f64::INFINITY, |a, b| if a > b { b } else { a });
+        Grid(self.0.iter().map(|c| c.moved(-min_x, -min_y)).collect())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -73,6 +90,12 @@ impl Circle {
     fn overlaps_with(&self, other: &Circle) -> bool {
         let distance = self.center.distance(&other.center);
         distance < self.radius + other.radius
+    }
+    fn moved(&self, x: f64, y: f64) -> Circle {
+        Circle {
+            center: self.center.moved(x, y),
+            radius: self.radius,
+        }
     }
 }
 
