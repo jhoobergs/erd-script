@@ -10,15 +10,16 @@ pub struct ERD {
 }
 
 impl ERD {
-    pub fn to_elements(self) -> NormalizedGrid {
+    pub fn to_global_placement(self) -> NormalizedGrid {
         let mut grid = Grid::new();
         let mut remaining_entities: std::collections::HashSet<_> =
             self.entities.iter().map(|e| e.name.clone()).collect();
         for relation in self.relations.into_iter() {
             let entities: Vec<_> = relation.members.iter().map(|e| e.entity.clone()).collect();
+            let name = relation.name.clone().into();
             let element: RelationElement = relation.into();
             // TODO: check if there are already entities of it placed
-            grid.add_circle(element.radius());
+            grid.add_circle(element.radius(), name);
             // TODO: add entities
             for entity_ident in entities {
                 let entity = self
@@ -31,7 +32,7 @@ impl ERD {
                 if remaining_entities.contains(&name) {
                     remaining_entities.remove(&name);
                     let element: EntityElement = entity.into();
-                    grid.add_circle(element.radius());
+                    grid.add_circle(element.radius(), name.into());
                 }
             }
         }
@@ -44,8 +45,9 @@ impl ERD {
                 .find(|r| r.name == entity_ident)
                 .unwrap()
                 .to_owned();
+            let name = entity.name.clone().into();
             let element: EntityElement = entity.into();
-            grid.add_circle(element.radius());
+            grid.add_circle(element.radius(), name);
         }
         grid.normalized()
     }
@@ -115,7 +117,9 @@ pub struct Entity {
 impl std::convert::From<Entity> for EntityElement {
     fn from(e: Entity) -> Self {
         let entity_name: String = e.name.into();
-        EntityElement::new(entity_name)
+        let attribute_names: Vec<String> =
+            e.attributes.iter().map(|a| a.get_ident().into()).collect();
+        EntityElement::new(entity_name, attribute_names)
     }
 }
 
@@ -293,7 +297,9 @@ impl ToDot for Relation {
 impl std::convert::From<Relation> for RelationElement {
     fn from(r: Relation) -> Self {
         let relation_name: String = r.name.into();
-        RelationElement::new(relation_name)
+        let attribute_names: Vec<String> =
+            r.attributes.iter().map(|a| a.get_ident().into()).collect();
+        RelationElement::new(relation_name, attribute_names)
     }
 }
 

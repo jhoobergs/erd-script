@@ -2,21 +2,24 @@ use plotters::prelude::Circle as PlotCircle;
 use plotters::prelude::*;
 
 #[derive(Debug, Clone)]
-pub struct Grid(Vec<Circle>);
+pub struct Grid(Vec<(String, Circle)>);
 
 impl Grid {
     pub fn new() -> Grid {
         Grid(Vec::new())
     }
-    pub fn add_circle(&mut self, radius: isize) {
+    pub fn add_circle(&mut self, radius: isize, name: String) {
         if self.0.is_empty() {
-            self.0.push(Circle {
-                center: Point { x: 0, y: 0 },
-                radius,
-            })
+            self.0.push((
+                name,
+                Circle {
+                    center: Point { x: 0, y: 0 },
+                    radius,
+                },
+            ))
         } else {
             let mut new_circle = None;
-            for circle in self.0.iter() {
+            for (_, circle) in self.0.iter() {
                 for (x_change, y_change) in vec![(1, 0), (0, 1), (-1, 0), (0, -1)] {
                     let possible_center = circle.center.moved(
                         x_change * (circle.radius + radius),
@@ -35,11 +38,12 @@ impl Grid {
                     break;
                 }
             }
-            self.0.push(new_circle.expect("Circle position not found"))
+            self.0
+                .push((name, new_circle.expect("Circle position not found")))
         }
     }
     pub fn can_add_circle(&self, circle: &Circle) -> bool {
-        for c in self.0.iter() {
+        for (_, c) in self.0.iter() {
             if c.overlaps_with(circle) {
                 return false;
             }
@@ -54,40 +58,45 @@ impl Grid {
         let min_x = self
             .0
             .iter()
-            .map(|c| c.center.x - c.radius)
+            .map(|(_, c)| c.center.x - c.radius)
             .min()
             .expect("Missing circles?");
         let min_y = self
             .0
             .iter()
-            .map(|c| c.center.y - c.radius)
+            .map(|(_, c)| c.center.y - c.radius)
             .min()
             .expect("Missing circles?");
-        NormalizedGrid(self.0.iter().map(|c| c.moved(-min_x, -min_y)).collect())
+        NormalizedGrid(
+            self.0
+                .iter()
+                .map(|(n, c)| (n.clone(), c.moved(-min_x, -min_y)))
+                .collect(),
+        )
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct NormalizedGrid(Vec<Circle>);
+pub struct NormalizedGrid(Vec<(String, Circle)>);
 
 impl NormalizedGrid {
     pub fn draw(&self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         let max_x = self
             .0
             .iter()
-            .map(|c| c.center.x + c.radius)
+            .map(|(_, c)| c.center.x + c.radius)
             .max()
             .expect("Missing circles") as u32;
         let max_y = self
             .0
             .iter()
-            .map(|c| c.center.y + c.radius)
+            .map(|(_, c)| c.center.y + c.radius)
             .max()
             .expect("Missing circles") as u32;
         let root = BitMapBackend::new(path, (max_x, max_y)).into_drawing_area();
         root.fill(&WHITE)?;
 
-        for circle in self.0.iter() {
+        for (_, circle) in self.0.iter() {
             root.draw(&PlotCircle::new(
                 (circle.center.x as i32, circle.center.y as i32),
                 circle.radius as i32,
@@ -176,10 +185,13 @@ pub struct EntityElement {
 }
 
 impl EntityElement {
-    pub fn new(s: String) -> Self {
+    pub fn new(s: String, attributes: Vec<String>) -> Self {
         Self {
             name: TextElement::new(s),
-            attributes: Vec::new(), // TODO
+            attributes: attributes
+                .into_iter()
+                .map(|a| AttributeElement::new(a))
+                .collect(),
         }
     }
 }
@@ -187,6 +199,12 @@ impl EntityElement {
 impl Draw for EntityElement {
     fn radius(&self) -> isize {
         self.name.radius()
+            + self
+                .attributes
+                .iter()
+                .map(|a| a.radius())
+                .max()
+                .unwrap_or(0)
     }
 }
 
@@ -212,12 +230,17 @@ impl Draw for AttributeElement {
 #[derive(Debug, Clone)]
 pub struct RelationElement {
     name: TextElement,
+    attributes: Vec<AttributeElement>,
 }
 
 impl RelationElement {
-    pub fn new(s: String) -> RelationElement {
+    pub fn new(s: String, attributes: Vec<String>) -> RelationElement {
         RelationElement {
             name: TextElement::new(s),
+            attributes: attributes
+                .into_iter()
+                .map(|a| AttributeElement::new(a))
+                .collect(),
         }
     }
 }
@@ -225,5 +248,11 @@ impl RelationElement {
 impl Draw for RelationElement {
     fn radius(&self) -> isize {
         self.name.radius()
+            + self
+                .attributes
+                .iter()
+                .map(|a| a.radius())
+                .max()
+                .unwrap_or(0)
     }
 }
