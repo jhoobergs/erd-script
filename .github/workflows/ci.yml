@@ -1,0 +1,43 @@
+name: Github IO
+
+on:
+  push:
+    branches: [main, ci]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            erd/target
+            erd-wasm/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Run wasm pack
+        run: wasm-pack build --target web
+        working-directory: erd-wasm
+      - name: Move all to folder
+        run: |
+          mkdir output
+          cp -r pkg output/pkg
+          cp index.html output
+          cp viz.js output
+          cp full.render.js output
+          rm output/pkg/.gitignore
+        working-directory: erd-wasm
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: erd-wasm/output # The folder the action should deploy.
+          CLEAN: true # Automatically remove deleted files from the deploy branch
