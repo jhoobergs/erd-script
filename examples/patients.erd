@@ -1,0 +1,36 @@
+entity patient
+
+entity division
+
+entity room
+
+entity medicin
+
+entity prescription
+
+entity doctor
+
+relation Houses
+  one required division
+  multiple optional room
+
+relation Sleeps(Sleeps in)
+  one required room
+  multiple optional patient
+
+relation Weekly(Gets weekly)
+  one required patient
+  multiple optional prescription
+
+relation PrescriptionMedicin(Contains)
+  one optional prescription
+  multiple required medicin
+
+relation PrescriptionDoctor(Prescribes)
+  one required doctor
+  multiple optional prescription
+
+relation PatientDoctor(Has)
+  multiple optional patient
+  one required doctor
+ 

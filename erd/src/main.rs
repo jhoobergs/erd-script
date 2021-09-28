@@ -12,6 +12,7 @@ use parser::ConsumeError;
 fn parse_file(path: &std::path::Path) -> Result<Vec<ast::Expr>, ConsumeError> {
     println!("{:?}", path.display());
     let content = std::fs::read_to_string(path).expect("Valid file");
+    println!("{}", content);
     let pairs =
         parser::parse_as_erd(&content).map_err(|e| parser::ConsumeError::ERDParseError(vec![e]))?;
     println!("{:?}", pairs);

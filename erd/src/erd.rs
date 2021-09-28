@@ -154,6 +154,11 @@ impl ToDot for Relation {
     fn to_dot_statements(&self) -> Vec<dot::Statement> {
         let relation_name: String = self.name.clone().into();
 
+        let relation_label = if let Some(l) = self.label.clone() {
+            l
+        } else {
+            relation_name.clone()
+        };
         let relation_node = dot::Statement::Node(dot::NodeStatement {
             node: relation_name.clone(),
             attributes: Some(dot::AttributeList {
@@ -164,7 +169,7 @@ impl ToDot for Relation {
                     },
                     dot::AListItem {
                         key: "label".into(),
-                        value: format!("{}", relation_name.clone(),),
+                        value: format!("\"{}\"", relation_label),
                     },
                 ]),
                 tail: Box::new(None),
@@ -219,13 +224,13 @@ impl ToDot for Relation {
                             key: "color".into(),
                             value: match member.optionality {
                                 RelationOptionality::Optional => "black",
-                                RelationOptionality::Required => "\"black:invis:black\"",
+                                RelationOptionality::Required => "\"black:invis:invis:black\"",
                             }
                             .into(),
                         },
                         dot::AListItem {
                             key: "label".into(),
-                            value: amount,
+                            value: format!("<<font color=\"blue\">{}</font>>", amount),
                         },
                         dot::AListItem {
                             key: "len".into(),
@@ -310,7 +315,7 @@ impl ToDot for ERD {
                 content: dot::AList(vec![
                     dot::AListItem {
                         key: "pad".into(),
-                        value: "0.5".to_string(),
+                        value: "2".to_string(),
                     },
                     dot::AListItem {
                         key: "nodesep".into(),
