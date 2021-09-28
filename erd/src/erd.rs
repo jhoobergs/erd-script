@@ -1,11 +1,30 @@
 use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::convert::TryInto;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ERD {
     entities: Vec<Entity>,
     relations: Vec<Relation>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum FromScriptError {
+    ParsingError(crate::parser::ConsumeError),
+    ERDError(Vec<ERDError>),
+}
+
+impl ERD {
+    pub fn from_script(content: &str) -> Result<ERD, FromScriptError> {
+        let pairs = crate::parser::parse_as_erd(&content).map_err(|e| {
+            FromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![e]))
+        })?;
+        let asts =
+            crate::parser::consume_expressions(pairs).map_err(FromScriptError::ParsingError)?;
+        asts.try_into().map_err(FromScriptError::ERDError)
+    }
 }
 
 impl ERD {
@@ -245,12 +264,28 @@ impl ToDot for Relation {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ERDError {
     DuplicateIdent(Ident),
     DuplicateAttributeInEntity(Ident, Ident), // Attribute, Entity
     DuplicateAttributeInRelation(Ident, Ident), // Attribute, Relation
     UnknownEntityInRelation(Ident, Ident),    // Entity, Relation
+}
+impl std::fmt::Display for ERDError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateIdent(i) => write!(f, "Name {} is used multiple times.", i),
+            Self::DuplicateAttributeInEntity(i, e) => {
+                write!(f, "Multiple attributes named {} in entity {}.", i, e)
+            }
+            Self::DuplicateAttributeInRelation(i, e) => {
+                write!(f, "Multiple attributes named {} in relation {}.", i, e)
+            }
+            Self::UnknownEntityInRelation(e, r) => {
+                write!(f, "Unknown entity {} in relation {}.", e, r)
+            }
+        }
+    }
 }
 
 impl std::convert::TryFrom<Vec<Expr>> for ERD {

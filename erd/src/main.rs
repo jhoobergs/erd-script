@@ -1,22 +1,13 @@
-mod ast;
-mod dot;
-mod erd;
-mod parser;
+use erd_script::parser::ConsumeError;
 
-extern crate pest;
-#[macro_use]
-extern crate pest_derive;
-
-use parser::ConsumeError;
-
-fn parse_file(path: &std::path::Path) -> Result<Vec<ast::Expr>, ConsumeError> {
+fn parse_file(path: &std::path::Path) -> Result<Vec<erd_script::ast::Expr>, ConsumeError> {
     println!("{:?}", path.display());
     let content = std::fs::read_to_string(path).expect("Valid file");
     println!("{}", content);
-    let pairs =
-        parser::parse_as_erd(&content).map_err(|e| parser::ConsumeError::ERDParseError(vec![e]))?;
+    let pairs = erd_script::parser::parse_as_erd(&content)
+        .map_err(|e| erd_script::parser::ConsumeError::ERDParseError(vec![e]))?;
     println!("{:?}", pairs);
-    let asts = parser::consume_expressions(pairs)?;
+    let asts = erd_script::parser::consume_expressions(pairs)?;
     println!("{:?}\n", asts);
     Ok(asts)
 }
@@ -28,7 +19,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use erd::ERD;
+    use erd_script::erd::ERD;
     use std::convert::TryInto;
     #[test]
     fn compile_examples() -> Result<(), ConsumeError> {
