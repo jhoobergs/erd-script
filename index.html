@@ -1,4 +1,4 @@
-<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.html --->>
+<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.htl --->
 <!DOCTYPE html>
 <html>
   <head>
@@ -111,7 +111,9 @@
         z-index: 1;
       }
 
-      #download {
+      #download,
+      #reset,
+      #download_src {
         font: bold 12px Arial;
         text-decoration: none;
         background-color: #eeeeee;
@@ -125,13 +127,16 @@
     </style>
   </head>
   <body>
-    <pre id="editor">
-entity Item
-</pre
-    >
+    <pre id="editor"></pre>
     <div id="options">
       <label>
         <a href="#" target="_blank" id="download">Download SVG</a>
+      </label>
+      <label>
+        <a href="#" id="reset">Reset ERD</a>
+      </label>
+      <label>
+        <a href="#" target="_blank" id="download_src">Download Source</a>
       </label>
 
       <!-- <label>
@@ -154,11 +159,46 @@ entity Item
       init().then(() => {
         renderGraph();
       });
+
+      const exampleERD = `// Modelled after https://graphviz.org/Gallery/undirected/ER.html
+
+entity course // Create an entity named course
+  attribute name // Add an attribute named name
+  id code // Add an identifier attribute named code
+
+entity institute
+  attribute name
+
+entity student
+  attribute name
+  attribute number
+  attribute grade
+
+relation CI(C-I) // Create a relation
+  one required institute // Add a member
+  multiple optional course // Add the other member
+
+relation SI(S-I) // Use the brackets to set titles with spaces and dashes, these are not allowed in the relation name
+  one required institute
+  multiple required student
+
+relation SC(S-C)
+  multiple optional course
+  multiple optional student`;
+
+      let code = window.localStorage.getItem("code");
+      if (!code) {
+        code = exampleERD;
+      }
+      document.getElementById("editor").innerHTML = code;
+
       let el_status = document.getElementById("status");
       let t_status = -1;
       let errorEl = document.querySelector("#error");
       let reviewer = document.getElementById("review"),
-        downloadBtn = document.getElementById("download");
+        downloadBtn = document.getElementById("download"),
+        downloadSrcBtn = document.getElementById("download_src"),
+        resetBtn = document.getElementById("reset");
       let worker = undefined;
       let parser = new DOMParser();
       function show_status(text, hide) {
@@ -191,7 +231,6 @@ entity Item
         reviewer.classList.remove("error");
 
         let dot_res = compile(editor.getSession().getDocument().getValue());
-        console.log(dot_res);
         if (dot_res.Err) {
           if (dot_res.Err.ParsingError) {
             if (dot_res.Err.ParsingError.Known) {
@@ -223,7 +262,6 @@ entity Item
                 worker.dispatchEvent(event);
                 return;
               }
-              console.log(e.data.result);
               show_status("done", 500);
               reviewer.classList.remove("working");
               reviewer.classList.remove("error");
@@ -300,6 +338,13 @@ entity Item
           "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
         downloadBtn.href = url;
         downloadBtn.download = "erd.svg";
+
+        const source_url =
+          "data:text;charset=utf-8," +
+          encodeURIComponent(editor.getSession().getDocument().getValue());
+        downloadSrcBtn.href = source_url;
+        downloadSrcBtn.download = "source.erd";
+
         var a = document.createElement("a");
         var svgEl = svg.documentElement;
         a.appendChild(svgEl);
@@ -311,10 +356,17 @@ entity Item
                center: true,
              });*/
       }
+      resetBtn.addEventListener("click", (e) => {
+        editor.getSession().setValue(exampleERD);
+      });
       let editor = ace.edit("editor");
       let lastHD = -1;
       editor.setTheme("ace/theme/monokai");
       editor.getSession().on("change", function () {
+        window.localStorage.setItem(
+          "code",
+          editor.getSession().getDocument().getValue()
+        );
         clearTimeout(lastHD);
         lastHD = setTimeout(renderGraph, 1500);
       });
