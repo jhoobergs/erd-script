@@ -1,0 +1,7 @@
+[book]
+title = "An introduction to erd-script"
+description = "An introduction to erd-script with some examples and an introduction to the wasm version."
+author = "Jesse Hoobergs"
+
+[output.html]
+additional-js = ["highlight-erd.js"]
