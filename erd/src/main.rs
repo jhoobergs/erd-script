@@ -1,19 +1,42 @@
+use clap::{AppSettings, Clap};
 use erd_script::parser::ConsumeError;
+use std::convert::TryInto;
+
+/// Compile an erd-script file to an svg
+#[derive(Clap)]
+#[clap(version = "1.0", author = "Jesse Hoobergs")]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Opts {
+    /// The path to an erd-script file-Some input. Because this isn't an Option<T> it's required to be used
+    file_path: String,
+    /// The path where the output svg should be written
+    output_path: String,
+}
 
 fn parse_file(path: &std::path::Path) -> Result<Vec<erd_script::ast::Expr>, ConsumeError> {
-    println!("{:?}", path.display());
     let content = std::fs::read_to_string(path).expect("Valid file");
-    println!("{}", content);
     let pairs = erd_script::parser::parse_as_erd(&content)
         .map_err(|e| erd_script::parser::ConsumeError::ERDParseError(vec![e]))?;
-    println!("{:?}", pairs);
     let asts = erd_script::parser::consume_expressions(pairs)?;
-    println!("{:?}\n", asts);
     Ok(asts)
 }
 
+fn compile_dot(dot: &erd_script::dot::Graph) -> std::io::Result<std::process::Output> {
+    let dot = dot.to_string();
+    let dot_file = "tmp.dot";
+    std::fs::write(dot_file, dot).expect("failed writing");
+    std::process::Command::new("dot")
+        .arg("-Tsvg")
+        .arg(dot_file)
+        .output()
+}
+
 fn main() {
-    println!("todo")
+    let opts: Opts = Opts::parse();
+    let ast = parse_file(&std::path::Path::new(&opts.file_path)).expect("Failed parsing file");
+    let erd: erd_script::erd::ERD = ast.try_into().expect("Error");
+    let output = compile_dot(&erd.to_dot()).expect("failed converting with dot");
+    std::fs::write(opts.output_path, output.stdout).expect("failed writing svg");
 }
 
 #[cfg(test)]
@@ -31,14 +54,8 @@ mod test {
             let path = path.unwrap().path();
             let expr = parse_file(&path)?;
             let erd: Result<ERD, _> = expr.try_into();
-            let dot = erd.unwrap().to_dot().to_string();
-            println!("{}", dot);
-            std::fs::write("../examples/tmp.dot", dot).expect("failed writing");
-            let output = std::process::Command::new("dot")
-                .arg("-Tsvg")
-                .arg("../examples/tmp.dot")
-                .output()
-                .expect("failed converting with dot");
+            let dot = erd.unwrap().to_dot();
+            let output = compile_dot(&dot).expect("failed converting with dot");
             let new_path = path.with_extension("svg");
             std::fs::write(new_path, output.stdout).expect("failed writing svg");
         }

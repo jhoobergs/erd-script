@@ -3,7 +3,6 @@ use pest::error::Error;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::{Parser, Span};
-use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "erd.pest"]
@@ -35,7 +34,6 @@ impl<'i> std::convert::From<ParserNode<'i>> for ast::Expr {
 }
 impl<'i> std::convert::From<ParserExpr> for ast::Expr {
     fn from(expr: ParserExpr) -> ast::Expr {
-        println!("{:?}", expr);
         match expr {
             ParserExpr::Entity(name, attributes) => ast::Expr::Entity(
                 name.into(),
