@@ -6,6 +6,12 @@ In this case 'easily' means without needing to pay attention to the drawing part
 
 It uses graphviz to actually draw to diagrams.
 
+# Usage
+
+The web interface is available at [github.io](jhoobergs.github.io/erd-script/).
+
+The cli isn't created yet.
+
 # Features
 Currently following 'parts' of ER-diagrams are supported:
   - `entities` with `attributes` and `identifiers`
