@@ -6,6 +6,21 @@ In this case 'easily' means without needing to pay attention to the drawing part
 
 It uses graphviz to actually draw to diagrams.
 
+# Features
+Currently following 'parts' of ER-diagrams are supported:
+  - `entities` with `attributes` and `identifiers`
+  - `relations`
+    - Members:
+      - `entity`
+      - Cardinality (`one`, `exactly`, `multiple`)
+      - Optionality (`optional` or `required`)
+    - `attributes` and `identifiers`  
+
+Parts that are not supported yet:
+  - Weak entities
+  - Composed attributes
+  - ...
+
 # Folders
 - `book`: Contains (a first version of) a book describing the usage of `erd-script`
 - `erd-wasm`: The wasm module used to create the web interface of `erd-script`
