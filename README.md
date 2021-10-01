@@ -8,7 +8,7 @@ It uses graphviz to actually draw to diagrams.
 
 # Usage
 
-The web interface is available at [github.io](jhoobergs.github.io/erd-script/).
+The web interface is available at [github.io](https://jhoobergs.github.io/erd-script/).
 
 The cli isn't created yet.
 
