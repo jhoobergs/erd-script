@@ -122,9 +122,26 @@ impl std::convert::From<(String, String, String)> for RelationMember {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForeignKey {
+    pub attribute_name: Ident,
+    pub relation: Ident,
+}
+
+impl std::convert::From<(String, String)> for ForeignKey {
+    fn from((attr, relation): (String, String)) -> Self {
+        Self {
+            attribute_name: attr.into(),
+            relation: relation.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Expr {
     /// Matches an entity with attributes
     Entity(Ident, Vec<Attribute>),
     /// Matches a relation with an optional name, members and attributes
     Relation(Ident, Option<String>, Vec<RelationMember>, Vec<Attribute>),
+    /// Matches a table with a name based on an entity or relation with some foreign key settings
+    Table(Ident, Ident, Vec<ForeignKey>),
 }
