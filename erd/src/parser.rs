@@ -25,6 +25,8 @@ pub enum ParserExpr {
         Vec<(String, String, String)>,
         Vec<(String, String)>,
     ),
+    /// (name, entity/relation, Vec<fk_name, fk_rel>)
+    Table(String, String, Vec<(String, String)>),
 }
 
 impl<'i> std::convert::From<ParserNode<'i>> for ast::Expr {
@@ -44,6 +46,11 @@ impl<'i> std::convert::From<ParserExpr> for ast::Expr {
                 label_option.map(|l| l.into()),
                 members.into_iter().map(|m| m.into()).collect(),
                 attributes.into_iter().map(|m| m.into()).collect(),
+            ),
+            ParserExpr::Table(name, er, foreign_keys) => ast::Expr::Table(
+                name.into(),
+                er.into(),
+                foreign_keys.into_iter().map(|f| f.into()).collect(),
             ),
         }
     }
@@ -156,6 +163,32 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
 
             Ok(ParserNode {
                 expr: ParserExpr::Relation(name, label, members, attributes),
+                span: pair.as_span(),
+            })
+        }
+        Rule::table => {
+            let mut foreign_keys = Vec::new();
+            let mut pairs = pair.into_inner().peekable();
+            let pair = pairs.next().unwrap();
+            let name = pair.as_str().to_string();
+            let pair = pairs.next().unwrap();
+            let er = pair.as_str().to_string();
+
+            for pair in pairs {
+                match pair.as_rule() {
+                    Rule::foreign => {
+                        let mut pairs = pair.into_inner();
+                        foreign_keys.push((
+                            pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().unwrap().as_str().to_string(),
+                        ));
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            Ok(ParserNode {
+                expr: ParserExpr::Table(name, er, foreign_keys),
                 span: pair.as_span(),
             })
         }
