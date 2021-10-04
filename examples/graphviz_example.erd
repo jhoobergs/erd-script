@@ -23,3 +23,13 @@ relation SI(S-I)
 relation SC(S-C)
   multiple optional course
   multiple optional student
+
+table course from course
+foreign key institute for CI
+
+table institute from institute
+
+table student from student
+foreign key institute for SI
+
+table enrollment from SC
