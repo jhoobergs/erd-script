@@ -3,6 +3,7 @@ use crate::erd::{ERDError, ERD};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::convert::TryInto;
+use std::fmt::Write;
 use std::iter::FromIterator;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -98,7 +99,13 @@ impl RelationTableDescription {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableColumn {
     name: Ident,
-    // TODO unique, nullable ...
+    // TODO unique, nullable, type ...
+}
+
+impl TableColumn {
+    fn write_sql_create_lines(&self, s: &mut String) {
+        write!(s, "{} int,", self.name);
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -108,9 +115,37 @@ pub struct Table {
     primary_key_parts: Vec<Ident>,
 }
 
+impl Table {
+    fn write_sql_create(&self, s: &mut String) {
+        write!(s, "CREATE TABLE {} (\n", self.name);
+        for col in self.columns.iter() {
+            col.write_sql_create_lines(s);
+            write!(s, "\n");
+        }
+        write!(
+            s,
+            "PRIMARY KEY ({})\n",
+            self.primary_key_parts
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+        );
+        write!(s, ");");
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Constraint {
     ForeignKey(ForeignKeyConstraint),
+}
+
+impl Constraint {
+    fn write_sql_create(&self, s: &mut String) {
+        match self {
+            Self::ForeignKey(f) => f.write_sql_create(s),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -121,10 +156,33 @@ pub struct ForeignKeyConstraint {
     other_table_column: Ident,
 }
 
+impl ForeignKeyConstraint {
+    fn write_sql_create(&self, s: &mut String) {
+        write!(
+            s,
+            "ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({});",
+            self.table_name, self.column_name, self.other_table_name, self.other_table_column
+        );
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Physical {
     tables: Vec<Table>,
     constraints: Vec<Constraint>,
+}
+
+impl Physical {
+    pub fn write_sql_create(&self, s: &mut String) {
+        for col in self.tables.iter() {
+            col.write_sql_create(s);
+            write!(s, "\n");
+        }
+        for constraint in self.constraints.iter() {
+            constraint.write_sql_create(s);
+            write!(s, "\n");
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
