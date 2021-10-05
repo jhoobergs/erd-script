@@ -11,19 +11,19 @@ pub struct ERD {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum FromScriptError {
+pub enum ERDFromScriptError {
     ParsingError(crate::parser::ConsumeError),
     ERDError(Vec<ERDError>),
 }
 
 impl ERD {
-    pub fn from_script(content: &str) -> Result<ERD, FromScriptError> {
+    pub fn from_script(content: &str) -> Result<ERD, ERDFromScriptError> {
         let pairs = crate::parser::parse_as_erd(&content).map_err(|e| {
-            FromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![e]))
+            ERDFromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![e]))
         })?;
         let asts =
-            crate::parser::consume_expressions(pairs).map_err(FromScriptError::ParsingError)?;
-        asts.try_into().map_err(FromScriptError::ERDError)
+            crate::parser::consume_expressions(pairs).map_err(ERDFromScriptError::ParsingError)?;
+        asts.try_into().map_err(ERDFromScriptError::ERDError)
     }
 }
 
@@ -79,6 +79,38 @@ impl ERD {
         }
 
         errors
+    }
+}
+
+impl ERD {
+    pub fn has_entity_or_relation(&self, name: Ident) -> bool {
+        self.entities.iter().find(|e| e.name == name).is_some()
+            || self.relations.iter().find(|e| e.name == name).is_some()
+    }
+
+    pub fn get_attributes(&self, name: Ident) -> Vec<Attribute> {
+        if let Some(e) = self.entities.iter().find(|e| e.name == name) {
+            e.attributes.clone()
+        } else if let Some(r) = self.relations.iter().find(|r| r.name == name) {
+            r.attributes.clone()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn get_idents(&self) -> HashSet<Ident> {
+        self.entities
+            .iter()
+            .map(|e| e.name.clone())
+            .chain(self.relations.iter().map(|e| e.name.clone()))
+            .collect()
+    }
+
+    pub fn get_relation(&self, name: Ident) -> Option<Relation> {
+        self.relations
+            .iter()
+            .find(|e| e.name == name)
+            .map(|a| a.to_owned())
     }
 }
 
@@ -167,6 +199,34 @@ pub struct Relation {
     label: Option<String>,
     members: Vec<RelationMember>,
     attributes: Vec<Attribute>,
+}
+
+impl Relation {
+    pub fn name(&self) -> Ident {
+        return self.name.clone();
+    }
+
+    pub fn degree(&self) -> usize {
+        self.members.len()
+    }
+
+    pub fn can_work_with_foreign_key(&self, entity: Ident) -> bool {
+        let mut nb_more_than_one = 0;
+        for member in self.members.iter() {
+            match member.cardinality {
+                crate::ast::RelationCardinality::One => (),
+                _ => nb_more_than_one += 1,
+            }
+        }
+        self.degree() == 2
+            && nb_more_than_one < 2
+            && self
+                .members
+                .iter()
+                .find(|m| m.entity != entity)
+                .map(|m| m.cardinality == crate::ast::RelationCardinality::One)
+                .unwrap_or(false)
+    }
 }
 
 impl ToDot for Relation {
