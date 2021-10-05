@@ -142,6 +142,8 @@ pub enum Expr {
     Entity(Ident, Vec<Attribute>),
     /// Matches a relation with an optional name, members and attributes
     Relation(Ident, Option<String>, Vec<RelationMember>, Vec<Attribute>),
-    /// Matches a table with a name based on an entity or relation with some foreign key settings
-    Table(Ident, Ident, Vec<ForeignKey>),
+    /// Matches a table with a name based on an entity with some foreign key settings
+    EntityTable(Ident, Ident, Vec<ForeignKey>),
+    /// Matches a table with a name based on a relation
+    RelationTable(Ident, Ident),
 }

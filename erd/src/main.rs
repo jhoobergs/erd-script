@@ -34,8 +34,8 @@ fn compile_dot(dot: &erd_script::dot::Graph) -> std::io::Result<std::process::Ou
 fn main() {
     let opts: Opts = Opts::parse();
     let ast = parse_file(&std::path::Path::new(&opts.file_path)).expect("Failed parsing file");
-    let physical: erd_script::physical::Physical = ast.try_into().expect("Error");
-    println!("{:#?}", physical.to_tables());
+    let physical: erd_script::physical::PhysicalDescription = ast.try_into().expect("Error");
+    println!("{:#?}", physical.to_physical());
     let output = compile_dot(&physical.to_dot()).expect("failed converting with dot");
     std::fs::write(opts.output_path, output.stdout).expect("failed writing svg");
 }
