@@ -151,9 +151,9 @@ impl Constraint {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForeignKeyConstraint {
     table_name: Ident,
-    column_name: Ident,
+    column_names: Vec<Ident>,
     other_table_name: Ident,
-    other_table_column: Ident,
+    other_table_column_names: Vec<Ident>,
 }
 
 impl ForeignKeyConstraint {
@@ -161,7 +161,18 @@ impl ForeignKeyConstraint {
         write!(
             s,
             "ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({});",
-            self.table_name, self.column_name, self.other_table_name, self.other_table_column
+            self.table_name,
+            self.column_names
+                .iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            self.other_table_name,
+            self.other_table_column_names
+                .iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
         );
     }
 }
@@ -302,19 +313,33 @@ impl PhysicalDescription {
         for t in self.tables.iter() {
             tables.push(t.to_table(&self.erd));
 
-            if let TableDescription::Entity(et) = t {
-                for foreign_key in et.foreign_keys.iter() {
-                    let other_entity = self
-                        .erd
-                        .get_relation(foreign_key.relation.clone())
-                        .unwrap()
-                        .find_other_member(t.name()); // TODO renamings? & more than degree 2
-                    constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
-                        table_name: t.name(),
-                        column_name: foreign_key.attribute_name.clone(),
-                        other_table_name: other_entity,
-                        other_table_column: "test".to_string().into(), // TODO
-                    }));
+            match t {
+                TableDescription::Entity(et) => {
+                    for foreign_key in et.foreign_keys.iter() {
+                        let other_entity = self
+                            .erd
+                            .get_relation(foreign_key.relation.clone())
+                            .unwrap()
+                            .find_other_member(t.name()); // TODO renamings? & more than degree 2
+                        constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
+                            table_name: t.name(),
+                            column_names: vec![foreign_key.attribute_name.clone()],
+                            other_table_name: other_entity.clone(),
+                            other_table_column_names: self.erd.get_entity_ids(other_entity),
+                        }));
+                    }
+                }
+                TableDescription::Relation(r) => {
+                    let relation = self.erd.get_relation(r.relation.clone()).unwrap();
+                    for member in relation.get_members().iter() {
+                        let column_names = self.erd.get_entity_ids(member.clone());
+                        constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
+                            table_name: t.name(),
+                            other_table_name: member.clone(),
+                            other_table_column_names: column_names.clone(),
+                            column_names,
+                        }));
+                    }
                 }
             }
         }
