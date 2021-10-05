@@ -5,9 +5,11 @@ entity course
   id code
 
 entity institute
+  id id
   attribute name
 
 entity student
+  id id
   attribute name
   attribute number
   attribute grade
@@ -24,12 +26,12 @@ relation SC(S-C)
   multiple optional course
   multiple optional student
 
-table course from course
+table course from entity course
 foreign key institute for CI
 
-table institute from institute
+table institute from entity institute
 
-table student from student
+table student from entity student
 foreign key institute for SI
 
-table enrollment from SC
+table enrollment from relation SC

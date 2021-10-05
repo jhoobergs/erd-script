@@ -15,11 +15,12 @@ member = { cardinality ~ optionality ~ ident }
 cardinality = { "multiple" | "one" | ("exactly(" ~ ASCII_DIGIT+ ~ ")" ) }
 optionality = { "optional" | "required" }
 
-expression = { entity | relation | table }
+expression = { entity | relation | entity_table | relation_table }
 
 foreign = { "foreign" ~ "key" ~ ident ~ "for" ~ ident }
 table_attribute = _{ foreign }
-table = { "table" ~ ident ~ "from" ~ ident ~ (!"\n\n" ~ "\n" ~ table_attribute)* }
+entity_table = { !relation_table ~ "table" ~ ident ~ "from" ~ "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ table_attribute)* }
+relation_table = { "table" ~ ident ~ "from" ~ "relation" ~ ident }
 
 erd = _{ SOI ~ "\n"* ~ expression ~ ("\n"{2,} ~ expression)* ~ "\n"* ~ EOI }
 
