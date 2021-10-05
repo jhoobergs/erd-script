@@ -83,19 +83,38 @@ impl ERD {
 }
 
 impl ERD {
-    pub fn has_entity_or_relation(&self, name: Ident) -> bool {
+    pub fn has_entity(&self, name: Ident) -> bool {
         self.entities.iter().find(|e| e.name == name).is_some()
-            || self.relations.iter().find(|e| e.name == name).is_some()
     }
 
-    pub fn get_attributes(&self, name: Ident) -> Vec<Attribute> {
-        if let Some(e) = self.entities.iter().find(|e| e.name == name) {
-            e.attributes.clone()
-        } else if let Some(r) = self.relations.iter().find(|r| r.name == name) {
+    pub fn has_relation(&self, name: Ident) -> bool {
+        self.relations.iter().find(|e| e.name == name).is_some()
+    }
+
+    pub fn get_relation_attributes(&self, name: Ident) -> Vec<Attribute> {
+        if let Some(r) = self.relations.iter().find(|r| r.name == name) {
             r.attributes.clone()
         } else {
             Vec::new()
         }
+    }
+
+    pub fn get_entity_attributes(&self, name: Ident) -> Vec<Attribute> {
+        if let Some(e) = self.entities.iter().find(|e| e.name == name) {
+            e.attributes.clone()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn get_entity_ids(&self, name: Ident) -> Vec<Ident> {
+        self.get_entity_attributes(name)
+            .into_iter()
+            .filter_map(|c| match c {
+                crate::ast::Attribute::Normal(_) => None,
+                crate::ast::Attribute::Key(k) => Some(k),
+            })
+            .collect()
     }
 
     pub fn get_idents(&self) -> HashSet<Ident> {
@@ -226,6 +245,18 @@ impl Relation {
                 .find(|m| m.entity != entity)
                 .map(|m| m.cardinality == crate::ast::RelationCardinality::One)
                 .unwrap_or(false)
+    }
+
+    pub fn find_other_member(&self, entity: Ident) -> Ident {
+        self.members
+            .iter()
+            .find(|m| m.entity != entity)
+            .map(|e| e.entity.clone())
+            .unwrap()
+    }
+
+    pub fn get_members(&self) -> Vec<Ident> {
+        self.members.iter().map(|e| e.entity.clone()).collect()
     }
 }
 

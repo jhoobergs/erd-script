@@ -6,43 +6,92 @@ use std::convert::TryInto;
 use std::iter::FromIterator;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TableDescription {
-    name: Ident,
-    er: Ident, // entity or relation where it comes from
-    foreign_keys: Vec<ForeignKey>,
+pub enum TableDescription {
+    Entity(EntityTableDescription),
+    Relation(RelationTableDescription),
 }
 
 impl TableDescription {
     pub fn to_table(&self, erd: &ERD) -> Table {
+        match self {
+            TableDescription::Entity(e) => e.to_table(erd),
+            TableDescription::Relation(r) => r.to_table(erd),
+        }
+    }
+    pub fn check_entity_or_relation(&self, erd: &ERD) -> bool {
+        match self {
+            TableDescription::Entity(e) => e.check_entity(erd),
+            TableDescription::Relation(r) => r.check_relation(erd),
+        }
+    }
+    pub fn name(&self) -> Ident {
+        match self {
+            TableDescription::Entity(e) => e.name.clone(),
+            TableDescription::Relation(r) => r.name.clone(),
+        }
+    }
+    pub fn er(&self) -> Ident {
+        match self {
+            TableDescription::Entity(e) => e.entity.clone(),
+            TableDescription::Relation(r) => r.relation.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EntityTableDescription {
+    name: Ident,
+    entity: Ident,
+    foreign_keys: Vec<ForeignKey>,
+}
+
+impl EntityTableDescription {
+    pub fn to_table(&self, erd: &ERD) -> Table {
         Table {
             name: self.name.clone(),
             columns: erd
-                .get_attributes(self.er.clone())
+                .get_entity_attributes(self.entity.clone())
                 .into_iter()
                 .map(|c| c.get_ident())
                 .chain(self.foreign_keys.iter().map(|c| c.attribute_name.clone()))
                 .map(|name| TableColumn { name: name.clone() })
                 .collect(),
-            primary_key_parts: erd
-                .get_attributes(self.er.clone())
-                .into_iter()
-                .filter_map(|c| match c {
-                    crate::ast::Attribute::Normal(_) => None,
-                    crate::ast::Attribute::Key(k) => Some(k),
-                })
-                .collect(),
-            constraints: self
-                .foreign_keys
-                .iter()
-                .map(|c| {
-                    Constraint::ForeignKey(ForeignKeyConstraint {
-                        column_name: c.attribute_name.clone(),
-                        other_table_name: c.relation.clone(), // TODO renamings?
-                        other_table_column: "test".to_string().into(), // TODO
-                    })
-                })
-                .collect(),
+            primary_key_parts: erd.get_entity_ids(self.entity.clone()),
         }
+    }
+    pub fn check_entity(&self, erd: &ERD) -> bool {
+        erd.has_entity(self.entity.clone())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelationTableDescription {
+    name: Ident,
+    relation: Ident, // entity or relation where it comes from
+}
+
+impl RelationTableDescription {
+    pub fn to_table(&self, erd: &ERD) -> Table {
+        let relation = erd.get_relation(self.relation.clone()).unwrap();
+        let members = relation.get_members();
+        let primary_key_parts: Vec<_> = members
+            .iter()
+            .flat_map(|e| erd.get_entity_ids(e.to_owned()))
+            .collect();
+        Table {
+            name: self.name.clone(),
+            columns: erd
+                .get_relation_attributes(self.relation.clone())
+                .into_iter()
+                .map(|c| c.get_ident())
+                .chain(primary_key_parts.clone().into_iter())
+                .map(|name| TableColumn { name: name.clone() })
+                .collect(),
+            primary_key_parts,
+        }
+    }
+    pub fn check_relation(&self, erd: &ERD) -> bool {
+        erd.has_relation(self.relation.clone())
     }
 }
 
@@ -57,7 +106,6 @@ pub struct Table {
     name: Ident,
     columns: Vec<TableColumn>,
     primary_key_parts: Vec<Ident>,
-    constraints: Vec<Constraint>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,6 +115,7 @@ pub enum Constraint {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForeignKeyConstraint {
+    table_name: Ident,
     column_name: Ident,
     other_table_name: Ident,
     other_table_column: Ident,
@@ -74,11 +123,17 @@ pub struct ForeignKeyConstraint {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Physical {
+    tables: Vec<Table>,
+    constraints: Vec<Constraint>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PhysicalDescription {
     erd: ERD,
     tables: Vec<TableDescription>,
 }
 
-impl Physical {
+impl PhysicalDescription {
     pub fn to_dot(&self) -> crate::dot::Graph {
         self.erd.to_dot()
     }
@@ -91,8 +146,8 @@ pub enum PhysicalFromScriptError {
     PhysicalError(Vec<PhysicalError>),
 }
 
-impl Physical {
-    pub fn from_script(content: &str) -> Result<Physical, PhysicalFromScriptError> {
+impl PhysicalDescription {
+    pub fn from_script(content: &str) -> Result<Self, PhysicalFromScriptError> {
         let pairs = crate::parser::parse_as_erd(&content).map_err(|e| {
             PhysicalFromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![
                 e,
@@ -100,69 +155,72 @@ impl Physical {
         })?;
         let asts = crate::parser::consume_expressions(pairs)
             .map_err(PhysicalFromScriptError::ParsingError)?;
-        let res: Result<Physical, PhysicalERDError> = asts.try_into();
+        let res: Result<Self, PhysicalERDError> = asts.try_into();
         res.map_err(|e| e.into())
     }
 }
 
-impl Physical {
+impl PhysicalDescription {
     fn validate(&self) -> Vec<PhysicalError> {
         let mut errors = Vec::new();
         let mut converted_entities_relations: HashSet<Ident> = HashSet::new();
         let mut table_names: HashSet<Ident> = HashSet::new();
         for t in self.tables.iter() {
-            if table_names.contains(&t.name) {
-                errors.push(PhysicalError::DuplicateTableName(t.name.clone()));
+            if table_names.contains(&t.name()) {
+                errors.push(PhysicalError::DuplicateTableName(t.name().clone()));
             } else {
-                table_names.insert(t.name.clone());
+                table_names.insert(t.name().clone());
             }
-            if !self.erd.has_entity_or_relation(t.er.clone()) {
+            if !t.check_entity_or_relation(&self.erd) {
                 errors.push(PhysicalError::UnknownEntityOrRelationInTable(
-                    t.er.clone(),
-                    t.name.clone(),
+                    t.er(),
+                    t.name(),
                 ))
-            } else if converted_entities_relations.contains(&t.er) {
-                errors.push(PhysicalError::ConvertedMoreThanOnce(t.er.clone()));
+            } else if converted_entities_relations.contains(&t.er()) {
+                errors.push(PhysicalError::ConvertedMoreThanOnce(t.er()));
             } else {
-                converted_entities_relations.insert(t.er.clone());
-                let mut column_names: HashSet<Ident> = HashSet::from_iter(
-                    self.erd
-                        .get_attributes(t.er.clone())
-                        .into_iter()
-                        .map(|a| a.get_ident()),
-                );
-                for foreign_key in t.foreign_keys.iter() {
-                    if column_names.contains(&foreign_key.attribute_name) {
-                        errors.push(PhysicalError::DuplicateColumnNameInTable(
-                            foreign_key.attribute_name.clone(),
-                            t.name.clone(),
-                        ));
-                    } else {
-                        column_names.insert(foreign_key.attribute_name.clone());
-                    }
-                    let relation = self.erd.get_relation(foreign_key.relation.clone());
-                    if let Some(r) = relation {
-                        if r.degree() != 2 {
-                            errors.push(PhysicalError::UnsupportedRelationDegree(r.name()));
-                        } else if r.can_work_with_foreign_key(foreign_key.relation.clone()) {
-                            if converted_entities_relations.contains(&foreign_key.relation) {
-                                errors.push(PhysicalError::ConvertedMoreThanOnce(
-                                    foreign_key.relation.clone(),
-                                ));
+                converted_entities_relations.insert(t.er());
+                if let TableDescription::Entity(et) = t {
+                    let mut column_names: HashSet<Ident> = HashSet::from_iter(
+                        self.erd
+                            .get_entity_attributes(t.er())
+                            .into_iter()
+                            .map(|a| a.get_ident()),
+                    );
+                    for foreign_key in et.foreign_keys.iter() {
+                        if column_names.contains(&foreign_key.attribute_name) {
+                            errors.push(PhysicalError::DuplicateColumnNameInTable(
+                                foreign_key.attribute_name.clone(),
+                                t.name(),
+                            ));
+                        } else {
+                            column_names.insert(foreign_key.attribute_name.clone());
+                        }
+                        let relation = self.erd.get_relation(foreign_key.relation.clone());
+                        if let Some(r) = relation {
+                            if r.degree() != 2 {
+                                errors.push(PhysicalError::UnsupportedRelationDegree(r.name()));
+                            } else if r.can_work_with_foreign_key(foreign_key.relation.clone()) {
+                                if converted_entities_relations.contains(&foreign_key.relation) {
+                                    errors.push(PhysicalError::ConvertedMoreThanOnce(
+                                        foreign_key.relation.clone(),
+                                    ));
+                                } else {
+                                    converted_entities_relations
+                                        .insert(foreign_key.relation.clone());
+                                }
                             } else {
-                                converted_entities_relations.insert(foreign_key.relation.clone());
+                                errors.push(PhysicalError::ImpossibleForeignKey(
+                                    foreign_key.relation.clone(),
+                                    t.name(),
+                                ))
                             }
                         } else {
-                            errors.push(PhysicalError::ImpossibleForeignKey(
+                            errors.push(PhysicalError::ForeignKeyToEntityInTable(
                                 foreign_key.relation.clone(),
-                                t.name.clone(),
-                            ))
+                                t.name(),
+                            ));
                         }
-                    } else {
-                        errors.push(PhysicalError::ForeignKeyToEntityInTable(
-                            foreign_key.relation.clone(),
-                            t.name.clone(),
-                        ));
                     }
                 }
             }
@@ -180,32 +238,61 @@ impl Physical {
 
         errors
     }
-    pub fn to_tables(&self) -> Vec<Table> {
+    pub fn to_physical(&self) -> Physical {
         let mut tables: Vec<Table> = Vec::new();
+        let mut constraints: Vec<Constraint> = Vec::new();
         for t in self.tables.iter() {
             tables.push(t.to_table(&self.erd));
+
+            if let TableDescription::Entity(et) = t {
+                for foreign_key in et.foreign_keys.iter() {
+                    let other_entity = self
+                        .erd
+                        .get_relation(foreign_key.relation.clone())
+                        .unwrap()
+                        .find_other_member(t.name()); // TODO renamings? & more than degree 2
+                    constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
+                        table_name: t.name(),
+                        column_name: foreign_key.attribute_name.clone(),
+                        other_table_name: other_entity,
+                        other_table_column: "test".to_string().into(), // TODO
+                    }));
+                }
+            }
         }
-        tables
+
+        Physical {
+            tables,
+            constraints,
+        }
     }
 }
 
-impl std::convert::TryFrom<Vec<Expr>> for Physical {
+impl std::convert::TryFrom<Vec<Expr>> for PhysicalDescription {
     type Error = PhysicalERDError;
     fn try_from(v: Vec<Expr>) -> Result<Self, Self::Error> {
         let erd: ERD = v.clone().try_into().map_err(PhysicalERDError::ERD)?;
         let tables = v
             .iter()
             .filter_map(|expr| match expr {
-                Expr::Table(name, er, foreign_keys) => Some(TableDescription {
-                    name: name.clone(),
-                    er: er.clone(),
-                    foreign_keys: foreign_keys.clone(),
-                }),
+                Expr::EntityTable(name, entity, foreign_keys) => {
+                    Some(TableDescription::Entity(EntityTableDescription {
+                        name: name.clone(),
+                        entity: entity.clone(),
+                        foreign_keys: foreign_keys.clone(),
+                    }))
+                }
+                Expr::RelationTable(name, relation) => {
+                    Some(TableDescription::Relation(RelationTableDescription {
+                        name: name.clone(),
+                        relation: relation.clone(),
+                    }))
+                }
                 _ => None,
             })
             .collect();
 
-        let p = Physical { erd, tables };
+        let p = PhysicalDescription { erd, tables };
 
         let validation = p.validate();
         if validation.is_empty() {
