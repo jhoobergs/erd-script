@@ -36,6 +36,11 @@ fn main() {
     let ast = parse_file(&std::path::Path::new(&opts.file_path)).expect("Failed parsing file");
     let physical: erd_script::physical::PhysicalDescription = ast.try_into().expect("Error");
     println!("{:#?}", physical.to_physical());
+
+    let mut s = String::new();
+    physical.to_physical().write_sql_create(&mut s);
+    println!("{}\n", s);
+
     let output = compile_dot(&physical.to_dot()).expect("failed converting with dot");
     std::fs::write(opts.output_path, output.stdout).expect("failed writing svg");
 }
