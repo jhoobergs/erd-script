@@ -129,7 +129,7 @@ pub struct TableColumn {
 
 impl TableColumn {
     fn write_sql_create_lines(&self, s: &mut String) {
-        write!(s, "{} {},", self.name, self.datatype.to_sql());
+        write!(s, "[{}] {},", self.name, self.datatype.to_sql()); // TODO: brackets also allowed in no access sql?
     }
 }
 
