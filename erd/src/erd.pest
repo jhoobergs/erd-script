@@ -4,8 +4,9 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
+datatype = { "integer" | "float" | "boolean" | (!"datetime" ~ "date") | "time" | "datetime" | "varchar(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" }
 attribute_prefix = { "attribute" | "id" }
-attribute = { attribute_prefix ~ ident } 
+attribute = { attribute_prefix ~ ident ~ ("type" ~ datatype)? } 
 entity = { "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ attribute)* }
 
 relation_name = {  (!")" ~ ANY)* }

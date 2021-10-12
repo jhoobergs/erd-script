@@ -16,14 +16,14 @@ pub struct ParserNode<'i> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParserExpr {
-    /// (Name, Vec<("id" | "attribute", Name)> )
-    Entity(String, Vec<(String, String)>),
-    /// (Name, Optional label, Vec<RelationMembers>, Vec<("id" | "attribute", Name)>)
+    /// (Name, Vec<("id" | "attribute", Name, Option<type>)> )
+    Entity(String, Vec<(String, String, Option<String>)>),
+    /// (Name, Optional label, Vec<RelationMembers>, Vec<("id" | "attribute", Name, Option<type>)>)
     Relation(
         String,
         Option<String>,
         Vec<(String, String, String)>,
-        Vec<(String, String)>,
+        Vec<(String, String, Option<String>)>,
     ),
     /// (name, entity, Vec<fk_name, fk_rel>)
     EntityTable(String, String, Vec<(String, String)>),
@@ -121,6 +121,7 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                 attributes.push((
                     pairs.next().unwrap().as_str().to_string(),
                     pairs.next().unwrap().as_str().to_string(),
+                    pairs.next().map(|pair| pair.as_str().to_string()),
                 ))
             }
 
@@ -158,6 +159,7 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                         attributes.push((
                             pairs.next().unwrap().as_str().to_string(),
                             pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().map(|pair| pair.as_str().to_string()),
                         ))
                     }
                     _ => unreachable!(),
