@@ -1,3 +1,4 @@
+use crate::ast::{Attribute, AttributeType, DataType};
 use crate::ast::{Expr, ForeignKey, Ident};
 use crate::erd::{ERDError, ERD};
 use serde::{Deserialize, Serialize};
@@ -53,11 +54,29 @@ impl EntityTableDescription {
             columns: erd
                 .get_entity_attributes(self.entity.clone())
                 .into_iter()
-                .map(|c| c.get_ident())
-                .chain(self.foreign_keys.iter().map(|c| c.attribute_name.clone()))
-                .map(|name| TableColumn { name: name.clone() })
+                .chain(self.foreign_keys.iter().flat_map(|c| {
+                    let other_member = erd
+                        .get_relation(c.relation.to_owned())
+                        .unwrap()
+                        .find_other_member(self.name.clone());
+                    erd.get_entity_ids(other_member)
+                        .into_iter()
+                        .map(move |a| Attribute {
+                            ident: c.attribute_name.clone(),
+                            r#type: AttributeType::Normal,
+                            datatype: a.get_data_type(),
+                        })
+                }))
+                .map(|c| TableColumn {
+                    name: c.get_ident(),
+                    datatype: c.get_data_type().unwrap(),
+                })
                 .collect(),
-            primary_key_parts: erd.get_entity_ids(self.entity.clone()),
+            primary_key_parts: erd
+                .get_entity_ids(self.entity.clone())
+                .into_iter()
+                .map(|a| a.get_ident())
+                .collect(),
         }
     }
     pub fn check_entity(&self, erd: &ERD) -> bool {
@@ -84,11 +103,16 @@ impl RelationTableDescription {
             columns: erd
                 .get_relation_attributes(self.relation.clone())
                 .into_iter()
-                .map(|c| c.get_ident())
                 .chain(primary_key_parts.clone().into_iter())
-                .map(|name| TableColumn { name: name.clone() })
+                .map(|c| TableColumn {
+                    name: c.get_ident(),
+                    datatype: c.get_data_type().unwrap(),
+                })
                 .collect(),
-            primary_key_parts,
+            primary_key_parts: primary_key_parts
+                .into_iter()
+                .map(|a| a.get_ident())
+                .collect(),
         }
     }
     pub fn check_relation(&self, erd: &ERD) -> bool {
@@ -99,12 +123,13 @@ impl RelationTableDescription {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableColumn {
     name: Ident,
+    datatype: DataType,
     // TODO unique, nullable, type ...
 }
 
 impl TableColumn {
     fn write_sql_create_lines(&self, s: &mut String) {
-        write!(s, "{} int,", self.name);
+        write!(s, "{} {},", self.name, self.datatype.to_sql());
     }
 }
 
@@ -325,14 +350,24 @@ impl PhysicalDescription {
                             table_name: t.name(),
                             column_names: vec![foreign_key.attribute_name.clone()],
                             other_table_name: other_entity.clone(),
-                            other_table_column_names: self.erd.get_entity_ids(other_entity),
+                            other_table_column_names: self
+                                .erd
+                                .get_entity_ids(other_entity)
+                                .into_iter()
+                                .map(|a| a.get_ident().clone())
+                                .collect(),
                         }));
                     }
                 }
                 TableDescription::Relation(r) => {
                     let relation = self.erd.get_relation(r.relation.clone()).unwrap();
                     for member in relation.get_members().iter() {
-                        let column_names = self.erd.get_entity_ids(member.clone());
+                        let column_names: Vec<_> = self
+                            .erd
+                            .get_entity_ids(member.clone())
+                            .into_iter()
+                            .map(|a| a.get_ident().clone())
+                            .collect();
                         constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
                             table_name: t.name(),
                             other_table_name: member.clone(),

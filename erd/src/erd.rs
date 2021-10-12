@@ -1,4 +1,4 @@
-use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
+use crate::ast::{Attribute, AttributeType, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -107,12 +107,12 @@ impl ERD {
         }
     }
 
-    pub fn get_entity_ids(&self, name: Ident) -> Vec<Ident> {
+    pub fn get_entity_ids(&self, name: Ident) -> Vec<Attribute> {
         self.get_entity_attributes(name)
             .into_iter()
-            .filter_map(|c| match c {
-                crate::ast::Attribute::Normal(_) => None,
-                crate::ast::Attribute::Key(k) => Some(k),
+            .filter_map(|c| match c.get_type() {
+                crate::ast::AttributeType::Normal => None,
+                crate::ast::AttributeType::Key => Some(c.to_owned()),
             })
             .collect()
     }
@@ -130,6 +130,17 @@ impl ERD {
             .iter()
             .find(|e| e.name == name)
             .map(|a| a.to_owned())
+    }
+
+    pub fn get_relation_attribute(&self, name: Ident, attribute: Ident) -> Option<Attribute> {
+        self.get_relation(name)
+            .map(|r| {
+                r.attributes
+                    .clone()
+                    .into_iter()
+                    .find(|a| a.get_ident() == attribute)
+            })
+            .flatten()
     }
 }
 
@@ -149,7 +160,7 @@ impl Attribute {
         let attribute_name: String = self.get_ident().into();
         attributes.push(dot::AListItem {
             key: "label".into(),
-            value: if let Attribute::Key(_) = self {
+            value: if let AttributeType::Key = self.get_type() {
                 format!("<<U>{}</U>>", attribute_name)
             } else {
                 attribute_name.clone()
