@@ -165,6 +165,7 @@ pub enum Expr {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataType {
     Integer,
+    AutoIncrement,
     Float,
     Boolean,
     Date,
@@ -180,6 +181,7 @@ impl std::convert::From<String> for DataType {
         } else {
             match &s[..] {
                 "integer" => Self::Integer,
+                "autoincrement" => Self::AutoIncrement,
                 "float" => Self::Float,
                 "boolean" => Self::Boolean,
                 "date" => Self::Date,
@@ -195,12 +197,25 @@ impl DataType {
     pub fn to_sql(&self) -> String {
         match self {
             Self::Integer => "INTEGER".to_string(),
+            Self::AutoIncrement => "AUTOINCREMENT".to_string(),
             Self::Float => "FLOAT".to_string(),
             Self::Boolean => "BOOL".to_string(),
             Self::Date => "DATE".to_string(),
             Self::Time => "TIME".to_string(),
             Self::DateTime => "DATETIME".to_string(),
             Self::Varchar(n) => format!("VARCHAR({})", n),
+        }
+    }
+    pub fn foreign_key_type(&self) -> DataType {
+        match self {
+            Self::Integer => Self::Integer,
+            Self::AutoIncrement => Self::Integer,
+            Self::Float => Self::Float,
+            Self::Boolean => Self::Boolean,
+            Self::Date => Self::Date,
+            Self::Time => Self::Time,
+            Self::DateTime => Self::DateTime,
+            Self::Varchar(n) => Self::Varchar(*n),
         }
     }
 }

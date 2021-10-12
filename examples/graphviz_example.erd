@@ -2,14 +2,14 @@
 
 entity course
   attribute name type varchar(50)
-  id code type integer 
+  id code type autoincrement 
 
 entity institute
-  id id type integer
+  id id type autoincrement
   attribute name type varchar(50)
 
 entity student
-  id id type integer 
+  id id type autoincrement
   attribute name type varchar(50)
   attribute number type integer
   attribute grade type integer

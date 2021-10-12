@@ -64,7 +64,7 @@ impl EntityTableDescription {
                         .map(move |a| Attribute {
                             ident: c.attribute_name.clone(),
                             r#type: AttributeType::Normal,
-                            datatype: a.get_data_type(),
+                            datatype: a.get_data_type().map(|d| d.foreign_key_type()),
                         })
                 }))
                 .map(|c| TableColumn {
@@ -106,7 +106,7 @@ impl RelationTableDescription {
                 .chain(primary_key_parts.clone().into_iter())
                 .map(|c| TableColumn {
                     name: c.get_ident(),
-                    datatype: c.get_data_type().unwrap(),
+                    datatype: c.get_data_type().unwrap().foreign_key_type(),
                 })
                 .collect(),
             primary_key_parts: primary_key_parts
