@@ -1,18 +1,18 @@
 // Modelled after https://graphviz.org/Gallery/undirected/ER.html
 
 entity course
-  attribute name
-  id code
+  attribute name type varchar(50)
+  id code type integer 
 
 entity institute
-  id id
-  attribute name
+  id id type integer
+  attribute name type varchar(50)
 
 entity student
-  id id
-  attribute name
-  attribute number
-  attribute grade
+  id id type integer 
+  attribute name type varchar(50)
+  attribute number type integer
+  attribute grade type integer
 
 relation CI(C-I)
   one required institute
@@ -35,3 +35,5 @@ table student from entity student
 foreign key institute for SI
 
 table enrollment from relation SC
+
+// integer, float, boolean, varchar(len), date, time, datetime
