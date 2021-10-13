@@ -1,6 +1,7 @@
 use crate::ast::{Attribute, AttributeType, DataType};
 use crate::ast::{Expr, ForeignKey, Ident};
 use crate::erd::{ERDError, ERD};
+use crate::sql::SQL;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
@@ -140,8 +141,13 @@ pub struct TableColumn {
 }
 
 impl TableColumn {
-    fn write_sql_create_lines(&self, s: &mut String) {
-        write!(s, "[{}] {},", self.name, self.datatype.to_sql()); // TODO: brackets also allowed in no access sql?
+    fn write_sql_create_lines(&self, s: &mut String, sql: SQL) {
+        write!(
+            s,
+            "{} {},",
+            sql.to_column_ident(&self.name),
+            sql.to_data_type(&self.datatype)
+        );
     }
 }
 
@@ -153,10 +159,10 @@ pub struct Table {
 }
 
 impl Table {
-    fn write_sql_create(&self, s: &mut String) {
+    fn write_sql_create(&self, s: &mut String, sql: SQL) {
         write!(s, "CREATE TABLE {} (\n", self.name);
         for col in self.columns.iter() {
-            col.write_sql_create_lines(s);
+            col.write_sql_create_lines(s, sql);
             write!(s, "\n");
         }
         write!(
@@ -164,7 +170,7 @@ impl Table {
             "PRIMARY KEY ({})\n",
             self.primary_key_parts
                 .iter()
-                .map(|p| p.to_string())
+                .map(|p| sql.to_column_ident(p))
                 .collect::<Vec<_>>()
                 .join(","),
         );
@@ -178,9 +184,9 @@ pub enum Constraint {
 }
 
 impl Constraint {
-    fn write_sql_create(&self, s: &mut String) {
+    fn write_sql_create(&self, s: &mut String, sql: SQL) {
         match self {
-            Self::ForeignKey(f) => f.write_sql_create(s),
+            Self::ForeignKey(f) => f.write_sql_create(s, sql),
         }
     }
 }
@@ -194,20 +200,20 @@ pub struct ForeignKeyConstraint {
 }
 
 impl ForeignKeyConstraint {
-    fn write_sql_create(&self, s: &mut String) {
+    fn write_sql_create(&self, s: &mut String, sql: SQL) {
         write!(
             s,
             "ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({});",
             self.table_name,
             self.column_names
                 .iter()
-                .map(|a| a.to_string())
+                .map(|a| sql.to_column_ident(a))
                 .collect::<Vec<_>>()
                 .join(","),
             self.other_table_name,
             self.other_table_column_names
                 .iter()
-                .map(|a| a.to_string())
+                .map(|a| sql.to_column_ident(a))
                 .collect::<Vec<_>>()
                 .join(","),
         );
@@ -221,13 +227,13 @@ pub struct Physical {
 }
 
 impl Physical {
-    pub fn write_sql_create(&self, s: &mut String) {
+    pub fn write_sql_create(&self, s: &mut String, sql: SQL) {
         for col in self.tables.iter() {
-            col.write_sql_create(s);
+            col.write_sql_create(s, sql);
             write!(s, "\n");
         }
         for constraint in self.constraints.iter() {
-            constraint.write_sql_create(s);
+            constraint.write_sql_create(s, sql);
             write!(s, "\n");
         }
     }

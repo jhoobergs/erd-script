@@ -201,18 +201,6 @@ impl std::convert::From<String> for DataType {
 }
 
 impl DataType {
-    pub fn to_sql(&self) -> String {
-        match self {
-            Self::Integer => "INTEGER".to_string(),
-            Self::AutoIncrement => "AUTOINCREMENT".to_string(),
-            Self::Float => "FLOAT".to_string(),
-            Self::Boolean => "YESNO".to_string(), // "BOOL".to_string(),
-            Self::Date => "DATE".to_string(),
-            Self::Time => "TIME".to_string(),
-            Self::DateTime => "DATETIME".to_string(),
-            Self::Varchar(n) => format!("VARCHAR({})", n),
-        }
-    }
     pub fn foreign_key_type(&self) -> DataType {
         match self {
             Self::Integer => Self::Integer,

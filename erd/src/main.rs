@@ -1,5 +1,6 @@
 use clap::{AppSettings, Clap};
 use erd_script::parser::ConsumeError;
+use erd_script::sql::SQL;
 use std::convert::TryInto;
 
 /// Compile an erd-script file to an svg
@@ -37,7 +38,9 @@ fn main() {
     let physical: erd_script::physical::PhysicalDescription = ast.try_into().expect("Error");
 
     let mut s = String::new();
-    physical.to_physical().write_sql_create(&mut s);
+    physical
+        .to_physical()
+        .write_sql_create(&mut s, SQL::LibreOfficeBase);
     println!("{}\n", s);
 
     let output = compile_dot(&physical.to_dot()).expect("failed converting with dot");
