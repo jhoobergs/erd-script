@@ -1,4 +1,4 @@
-<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.htl --->
+<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.html --->
 <!DOCTYPE html>
 <html>
   <head>
@@ -62,9 +62,6 @@
       }
 
       #review svg {
-        position: absolute;
-        top: 0;
-        left: 0;
         width: 100%;
         height: 100%;
       }
@@ -72,7 +69,6 @@
       #review #text {
         font-size: 12px;
         font-family: monaco, courier, monospace;
-        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -102,12 +98,11 @@
       #review #error {
         white-space: pre-wrap;
         display: none;
-        position: absolute;
-        top: 20px;
-        left: 20px;
+        margin-top: 20px;
+        margin-left: 20px;
         margin-right: 20px;
-        background: "red";
-        color: "white";
+        background: red;
+        color: white;
         z-index: 1;
       }
 
@@ -129,8 +124,15 @@
   <body>
     <pre id="editor"></pre>
     <div id="options">
+      <label id="dbms">
+        DBMS:
+        <select>
+          <option value="ms_access" selected>MS Access</option>
+          <option value="libre_office_base">Libre Office Base</option>
+        </select>
+      </label>
       <label>
-        <a href="#" target="_blank" id="download">Download SVG</a>
+        <a href="#" target="_blank" id="download">Download SQL</a>
       </label>
       <label>
         <a href="#" id="reset">Reset ERD</a>
@@ -157,36 +159,48 @@
     <script type="module">
       import init, { compile_physical } from "./pkg/erd_wasm.js";
       init().then(() => {
-        renderGraph();
+        generateSQL();
       });
-
+      const localstorage_key = "physical_code";
       const exampleERD = `// Modelled after https://graphviz.org/Gallery/undirected/ER.html
 
-entity course // Create an entity named course
-  attribute name // Add an attribute named name
-  id code // Add an identifier attribute named code
+      entity course
+        attribute name type varchar(50)
+        id code type autoincrement
 
-entity institute
-  attribute name
+      entity institute
+        id id type autoincrement
+        attribute name type varchar(50)
 
-entity student
-  attribute name
-  attribute number
-  attribute grade
+      entity student
+        id id type autoincrement
+        attribute name type varchar(50)
+        attribute number type integer
+        attribute grade type integer
 
-relation CI(C-I) // Create a relation
-  one required institute // Add a member
-  multiple optional course // Add the other member
+      relation CI(C-I)
+        one required institute
+        multiple optional course
 
-relation SI(S-I) // Use the brackets to set titles with spaces and dashes, these are not allowed in the relation name
-  one required institute
-  multiple required student
+      relation SI(S-I)
+        one required institute
+        multiple required student
 
-relation SC(S-C)
-  multiple optional course
-  multiple optional student`;
+      relation SC(S-C)
+        multiple optional course
+        multiple optional student
 
-      let code = window.localStorage.getItem("code");
+      table course from entity course
+      foreign key institute for CI
+
+      table institute from entity institute
+
+      table student from entity student
+      foreign key institute for SI
+
+      table enrollment from relation SC`;
+
+      let code = window.localStorage.getItem(localstorage_key);
       if (!code) {
         code = exampleERD;
       }
@@ -198,8 +212,8 @@ relation SC(S-C)
       let reviewer = document.getElementById("review"),
         downloadBtn = document.getElementById("download"),
         downloadSrcBtn = document.getElementById("download_src"),
-        resetBtn = document.getElementById("reset");
-      let worker = undefined;
+        resetBtn = document.getElementById("reset"),
+        dbmsEl = document.querySelector("#dbms select");
       let parser = new DOMParser();
       function show_status(text, hide) {
         hide = hide || 0;
@@ -219,19 +233,20 @@ relation SC(S-C)
 
         var message =
           e.message === undefined
-            ? "An error occurred while processing the graph input."
+            ? "An error occurred while processing the input."
             : e.message;
         while (errorEl.firstChild) {
           errorEl.removeChild(errorEl.firstChild);
         }
         errorEl.appendChild(document.createTextNode(message));
       }
-      function renderGraph() {
+      function generateSQL() {
         reviewer.classList.add("working");
         reviewer.classList.remove("error");
 
         let physical_res = compile_physical(
-          editor.getSession().getDocument().getValue()
+          editor.getSession().getDocument().getValue(),
+          dbmsEl.value
         );
         console.log(physical_res);
         if (physical_res.Err) {
@@ -275,6 +290,16 @@ relation SC(S-C)
         reviewer.classList.remove("working");
         reviewer.classList.remove("error");
 
+        const sql_url = "data:text;charset=utf-8," + encodeURIComponent(result);
+        downloadBtn.href = sql_url;
+        downloadBtn.download = "source.sql";
+
+        const source_url =
+          "data:text;charset=utf-8," +
+          encodeURIComponent(editor.getSession().getDocument().getValue());
+        downloadSrcBtn.href = source_url;
+        downloadSrcBtn.download = "source.erd";
+
         let span = document.createElement("span");
         span.setAttribute("id", "text");
         span.innerHTML = result;
@@ -288,12 +313,13 @@ relation SC(S-C)
       editor.setTheme("ace/theme/monokai");
       editor.getSession().on("change", function () {
         window.localStorage.setItem(
-          "code",
+          localstorage_key,
           editor.getSession().getDocument().getValue()
         );
         clearTimeout(lastHD);
-        lastHD = setTimeout(renderGraph, 1500);
+        lastHD = setTimeout(generateSQL, 1500);
       });
+      dbmsEl.addEventListener("change", generateSQL);
     </script>
   </body>
 </html>

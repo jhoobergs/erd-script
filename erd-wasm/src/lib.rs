@@ -1,6 +1,5 @@
-use erd_script::erd::ToDot;
+use erd_script::sql::SQL;
 use serde::{Deserialize, Serialize};
-use std::convert::TryInto;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -59,6 +58,7 @@ enum PhysicalCompileError {
     ERDErrors(Vec<String>),
     PhysicalErrors(Vec<String>),
     ParsingError(ParsingError),
+    InvalidDBMS,
 }
 
 impl PhysicalCompileError {
@@ -78,15 +78,19 @@ impl PhysicalCompileError {
 }
 
 #[wasm_bindgen]
-pub fn compile_physical(erd_script: &str) -> JsValue {
-    JsValue::from_serde(
-        &erd_script::physical::PhysicalDescription::from_script(erd_script)
-            .map(|physical| {
-                let mut s = String::new();
-                physical.to_physical().write_sql_create(&mut s);
-                s
-            })
-            .map_err(PhysicalCompileError::create),
-    )
-    .unwrap_or(false.into())
+pub fn compile_physical(erd_script: &str, sql_dbms: &str) -> JsValue {
+    if let Some(dbms) = SQL::from_str(sql_dbms) {
+        JsValue::from_serde(
+            &erd_script::physical::PhysicalDescription::from_script(erd_script)
+                .map(|physical| {
+                    let mut s = String::new();
+                    physical.to_physical().write_sql_create(&mut s, dbms);
+                    s
+                })
+                .map_err(PhysicalCompileError::create),
+        )
+        .unwrap_or(false.into())
+    } else {
+        JsValue::from_serde(&PhysicalCompileError::InvalidDBMS).unwrap_or(false.into())
+    }
 }

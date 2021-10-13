@@ -1,4 +1,4 @@
-<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.htl --->
+<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.html --->
 <!DOCTYPE html>
 <html>
   <head>
@@ -106,8 +106,8 @@
         top: 20px;
         left: 20px;
         margin-right: 20px;
-        background: "red";
-        color: "white";
+        background: red;
+        color: white;
         z-index: 1;
       }
 
@@ -160,6 +160,7 @@
         renderGraph();
       });
 
+      const localstorage_key = "code";
       const exampleERD = `// Modelled after https://graphviz.org/Gallery/undirected/ER.html
 
 entity course // Create an entity named course
@@ -186,7 +187,7 @@ relation SC(S-C)
   multiple optional course
   multiple optional student`;
 
-      let code = window.localStorage.getItem("code");
+      let code = window.localStorage.getItem(localstorage_key);
       if (!code) {
         code = exampleERD;
       }
@@ -364,7 +365,7 @@ relation SC(S-C)
       editor.setTheme("ace/theme/monokai");
       editor.getSession().on("change", function () {
         window.localStorage.setItem(
-          "code",
+          localstorage_key,
           editor.getSession().getDocument().getValue()
         );
         clearTimeout(lastHD);
