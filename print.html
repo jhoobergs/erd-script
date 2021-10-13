@@ -3,7 +3,8 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - An introduction to erd-script</title>
+        <title>An introduction to erd-script</title>
+                <meta name="robots" content="noindex" />
                 
 
         <!-- Custom HTML head -->
@@ -175,15 +176,172 @@ relation SC(S-C)
   multiple optional course
   multiple optional student
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="syntax"><a class="header" href="#syntax">Syntax</a></h1>
+<p>In Entity-Relation diagrams the following concepts exist:</p>
+<ul>
+<li>Entities</li>
+<li>Relations</li>
+<li>Attributes</li>
+<li>Identifying attributes</li>
+<li>(more exist, but are not yet supported)</li>
+</ul>
+<h2 id="general-info"><a class="header" href="#general-info">General info</a></h2>
+<ul>
+<li>A <code>name</code> can only contain alphanumerical characters.</li>
+<li>A <code>label</code> can contain any character.</li>
+</ul>
+<h3 id="comments"><a class="header" href="#comments">Comments</a></h3>
+<p>You can add comments to the <code>erd</code> code by preceding it with <code>//</code>.</p>
+<pre><code class="language-erd">// This is a comment
+</code></pre>
+<h2 id="entities"><a class="header" href="#entities">Entities</a></h2>
+<p>An entity is defined with the keyword <code>entity</code> followed by a <code>name</code>.</p>
+<pre><code class="language-erd">entity course
+</code></pre>
+<h2 id="relations"><a class="header" href="#relations">Relations</a></h2>
+<p>A relation is defined with the keyword <code>relation</code> followed by a <code>name</code>.
+This relation definition needs to be followed by at least 2 lines specifying the members.</p>
+<h3 id="members"><a class="header" href="#members">Members</a></h3>
+<p>The syntax for a member is of the form <code>&lt;cardinality&gt; &lt;optionality&gt; &lt;entity_name&gt;</code></p>
+<p>Valid values are:</p>
+<ul>
+<li><code>cardinality</code>: <code>one</code> (maximum one), <code>multiple</code> (can be several), <code>exactly(n)</code> (exactly n times)</li>
+<li><code>optionality</code>: <code>required</code> or <code>optional</code></li>
+</ul>
+<pre><code class="language-erd">relation CI
+  one required institute // A course has to be taught in an institute and can only be taught in one institute
+  multiple optional course // An institute can teach multiple courses but does not need to teach one
+</code></pre>
+<p>It is possible to add a <code>label</code> to a relation by placing it between round brackets.</p>
+<pre><code class="language-erd">relation CI(C-I)
+  one required institute
+  multiple optional course
+</code></pre>
+<h2 id="attributes"><a class="header" href="#attributes">Attributes</a></h2>
+<p>Attributes can be added to entities and relations.</p>
+<p>The syntax for an attribute is of the form <code>&lt;type&gt; &lt;name&gt;</code> where type can be <code>id</code> or <code>attribute</code>.</p>
+<pre><code class="language-erd">entity course
+  attribute name
+  id code
+
+entity institute
+  attribute name
+
+relation CI(C-I)
+  one required institute
+  multiple optional course
+  attribute year
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="syntax-1"><a class="header" href="#syntax-1">Syntax</a></h1>
+<p><code>erd-script</code> supports converting an ER-diagram to physical structure by generating the <code>sql</code> code to create the tables and constraints.</p>
+<p>To use this feature, extra syntax is needed.</p>
+<p>The following concepts are used:</p>
+<ul>
+<li>Tables</li>
+<li>Datatypes</li>
+</ul>
+<h2 id="datatypes"><a class="header" href="#datatypes">Datatypes</a></h2>
+<p>Columns in a table need to have a datatype, therefore you need to add a type to each attribute in the ER-diagram.</p>
+<pre><code class="language-erd">entity Person
+  id id type autoincrement
+  attribute name type varchar(100)
+  attribute alive type boolean
+</code></pre>
+<p>The following datatypes are supported</p>
+<ul>
+<li><code>autoincrement</code>: an integer that is filled in automatically</li>
+<li><code>boolean</code>: a boolean <code>true</code> / <code>false</code> value</li>
+<li><code>varchar(n)</code>: a text of maximum length <code>n</code></li>
+<li><code>integer</code>: an integer</li>
+<li><code>float</code>: a floating comma value</li>
+<li><code>datetime</code>: a date and time</li>
+</ul>
+<h2 id="tables"><a class="header" href="#tables">Tables</a></h2>
+<h3 id="entities-1"><a class="header" href="#entities-1">Entities</a></h3>
+<p>For each entitiy a table needs to be created with a command of the form <code>table &lt;table_name&gt; from entity &lt;entity_name&gt;</code>.</p>
+<pre><code class="language-erd">table person from entity Person
+</code></pre>
+<h3 id="relations-1"><a class="header" href="#relations-1">Relations</a></h3>
+<h4 id="foreign-keys"><a class="header" href="#foreign-keys">Foreign keys</a></h4>
+<p>Relations of type <code>1:1</code> or <code>1:n</code> can be implemented by adding a foreign key to the right table.</p>
+<pre><code class="language-erd">table person from entity Person
+foreign key father for Father
+foreign key mother for Mother
+</code></pre>
+<h4 id="extra-table"><a class="header" href="#extra-table">Extra table</a></h4>
+<p>Relations of type <code>m:n</code> need to be implemented by creating an extra table with a command of the form <code>table &lt;table_name&gt; from relation &lt;relation_name&gt;</code>.</p>
+<pre><code class="language-erd">table ownership from relation Ownership
+</code></pre>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre><code class="language-erd">entity Person
+  id id type autoincrement
+  attribute name type varchar(100)
+  attribute alive type boolean
+
+relation Father
+  one optional Person // For now, this order is important, the one with 'one' should be the first for unary relations
+  multiple optional Person
+
+relation Mother
+  one optional Person
+  multiple optional Person
+
+relation Friends(Is friends with)
+  multiple optional Person
+  multiple optional Person
+
+entity Car
+  id id type autoincrement
+  attribute color type varchar(20)
+  attribute price type float
+
+relation Ownership(Is owner)
+  multiple optional Person
+  multiple optional Car
+  attribute since type datetime
+
+table person from entity Person
+foreign key father for Father
+foreign key mother for Mother
+
+table car from entity Car
+
+table ownership from relation Ownership
+
+table friendship from relation Friends
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="importing-the-sql-in-your-dbms"><a class="header" href="#importing-the-sql-in-your-dbms">Importing the SQL in your dbms</a></h1>
+<h2 id="libreoffice-base"><a class="header" href="#libreoffice-base">LibreOffice Base</a></h2>
+<ul>
+<li>Start the program</li>
+<li>Create a new (or open a) database of type <code>HSQLDB Embedded</code></li>
+<li>Click in the toolbar on <code>Tools</code> -&gt; <code>SQL...</code></li>
+<li>Paste the SQL code in the upper input field
+<ul>
+<li>Make sure you selected <code>LibreOffice Base</code> as dbms when generating the SQL code.</li>
+</ul>
+</li>
+<li>Click on <code>Execute</code>
+<ul>
+<li>The status should be <code>1: Command successfully executed.</code></li>
+</ul>
+</li>
+<li>Close the SQL view (by clicking on Close in the right bottom corner)</li>
+<li>Click on <code>Tables</code> in the left menu</li>
+<li>Refresh the tables by clicking on <code>View</code> -&gt; <code>Refresh Tables</code>
+<ul>
+<li>All tables should be there</li>
+</ul>
+</li>
+</ul>
+<p>You can also check the relations by clicking on <code>Tools</code> -&gt; <code>Relationships</code></p>
+<h2 id="ms-access"><a class="header" href="#ms-access">MS Access</a></h2>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                                                    <a rel="next" href="erd_syntax.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
                         
                         <div style="clear: both"></div>
                     </nav>
@@ -192,9 +350,6 @@ relation SC(S-C)
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                                    <a rel="next" href="erd_syntax.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
                             </nav>
 
         </div>
@@ -218,6 +373,11 @@ relation SC(S-C)
         <!-- Custom JS scripts -->
                 <script type="text/javascript" src="highlight-erd.js"></script>
         
-        
+                        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+                
     </body>
 </html>

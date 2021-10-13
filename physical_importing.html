@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - An introduction to erd-script</title>
+        <title>Importing SQL - An introduction to erd-script</title>
                 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="erd_syntax.html"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="erd_syntax.html"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html" class="active"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -143,47 +143,41 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p><code>erd-script</code> is a system to easily draw Entity-Relation (ER) diagrams.</p>
-<p>In this case 'easily' means without needing to pay attention to the drawing part itself. This implies that the writer only needs to think about specifying the right entities, relations, attributes and identifiers.</p>
-<p>It uses <code>graphviz</code> to actually draw to diagrams.</p>
-<p>You can try it out in the browser by visiting <a href="https://jhoobergs.github.io/erd-script/">this site</a>.</p>
-<h2 id="sample"><a class="header" href="#sample">Sample</a></h2>
-<pre><code class="language-erd">// Modelled after https://graphviz.org/Gallery/undirected/ER.html
-
-entity course
-  attribute name
-  id code
-
-entity institute
-  attribute name
-
-entity student
-  attribute name
-  attribute number
-  attribute grade
-
-relation CI(C-I)
-  one required institute
-  multiple optional course
-
-relation SI(S-I)
-  one required institute
-  multiple required student
-
-relation SC(S-C)
-  multiple optional course
-  multiple optional student
-</code></pre>
+                        <h1 id="importing-the-sql-in-your-dbms"><a class="header" href="#importing-the-sql-in-your-dbms">Importing the SQL in your dbms</a></h1>
+<h2 id="libreoffice-base"><a class="header" href="#libreoffice-base">LibreOffice Base</a></h2>
+<ul>
+<li>Start the program</li>
+<li>Create a new (or open a) database of type <code>HSQLDB Embedded</code></li>
+<li>Click in the toolbar on <code>Tools</code> -&gt; <code>SQL...</code></li>
+<li>Paste the SQL code in the upper input field
+<ul>
+<li>Make sure you selected <code>LibreOffice Base</code> as dbms when generating the SQL code.</li>
+</ul>
+</li>
+<li>Click on <code>Execute</code>
+<ul>
+<li>The status should be <code>1: Command successfully executed.</code></li>
+</ul>
+</li>
+<li>Close the SQL view (by clicking on Close in the right bottom corner)</li>
+<li>Click on <code>Tables</code> in the left menu</li>
+<li>Refresh the tables by clicking on <code>View</code> -&gt; <code>Refresh Tables</code>
+<ul>
+<li>All tables should be there</li>
+</ul>
+</li>
+</ul>
+<p>You can also check the relations by clicking on <code>Tools</code> -&gt; <code>Relationships</code></p>
+<h2 id="ms-access"><a class="header" href="#ms-access">MS Access</a></h2>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                        
-                                                    <a rel="next" href="erd_syntax.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
+                                                    <a rel="prev" href="physical_syntax.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
                             </a>
+                        
                         
                         <div style="clear: both"></div>
                     </nav>
@@ -191,10 +185,10 @@ relation SC(S-C)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                
-                                    <a rel="next" href="erd_syntax.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
+                                    <a rel="prev" href="physical_syntax.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
                     </a>
+                
                             </nav>
 
         </div>
