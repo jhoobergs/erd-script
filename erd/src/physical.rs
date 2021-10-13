@@ -94,14 +94,22 @@ impl RelationTableDescription {
     pub fn to_table(&self, erd: &ERD) -> Table {
         let relation = erd.get_relation(self.relation.clone()).unwrap();
         let members = relation.get_members();
+        let mut used_members: HashSet<Ident> = HashSet::new();
         let primary_key_parts: Vec<_> = members
             .iter()
             .flat_map(|e| {
-                erd.get_entity_ids(e.to_owned())
-                    .into_iter()
-                    .map(move |a| a.renamed(format!("{}_{}", e, a.ident.to_string()).into()))
+                let postfix = if used_members.contains(&e) {
+                    "2" // TODO improve if other than binary relation are supported
+                } else {
+                    used_members.insert(e.to_owned());
+                    ""
+                };
+                erd.get_entity_ids(e.to_owned()).into_iter().map(move |a| {
+                    a.renamed(format!("{}_{}{}", e, a.ident.to_string(), postfix).into())
+                })
             })
             .collect();
+
         Table {
             name: self.name.clone(),
             columns: erd
@@ -376,6 +384,7 @@ impl PhysicalDescription {
                 }
                 TableDescription::Relation(r) => {
                     let relation = self.erd.get_relation(r.relation.clone()).unwrap();
+                    let mut used_members: HashSet<Ident> = HashSet::new(); // TODO: reduce duplication?
                     for member in relation.get_members().iter() {
                         let other_table_column_names: Vec<_> = self
                             .erd
@@ -383,6 +392,13 @@ impl PhysicalDescription {
                             .into_iter()
                             .map(|a| a.get_ident().clone())
                             .collect();
+
+                        let postfix = if used_members.contains(&member) {
+                            "2" // TODO improve if other than binary relation are supported
+                        } else {
+                            used_members.insert(member.to_owned());
+                            ""
+                        };
                         constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
                             table_name: t.name(),
                             other_table_name: entity_name_to_table_name
@@ -391,7 +407,7 @@ impl PhysicalDescription {
                                 .to_owned(),
                             column_names: other_table_column_names
                                 .iter()
-                                .map(|n| format!("{}_{}", member, n).into())
+                                .map(|n| format!("{}_{}{}", member, n, postfix).into())
                                 .collect(),
                             other_table_column_names,
                         }));
