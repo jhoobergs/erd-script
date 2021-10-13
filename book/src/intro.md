@@ -6,7 +6,7 @@ In this case 'easily' means without needing to pay attention to the drawing part
 
 It uses `graphviz` to actually draw to diagrams.
 
-You can try it out in the browser by visiting [this site](https://jhoobergs.github.io/erd-script/).
+You can try it out in the browser as described [here](./online.md).
 
 ## Sample
 
