@@ -1,0 +1,32 @@
+entity Person
+  id id type autoincrement
+  attribute name type varchar(100)
+  attribute alive type boolean
+  
+relation Father
+  one optional Person // For now, this order is important, the one with 'one' should be the first for unary relations
+  multiple optional Person
+
+relation Mother
+  one optional Person
+  multiple optional Person
+
+entity Car
+  id id type autoincrement
+  attribute color type varchar(20)
+  attribute price type float
+
+relation Ownership("Is owner")
+  multiple optional Person
+  multiple optional Car
+  attribute since type datetime
+
+table person from entity Person
+foreign key father for Father
+foreign key mother for Mother
+
+table car from entity Car
+
+table ownership from relation Ownership
+
+// integer, float, boolean, varchar(len), date, time, datetime
