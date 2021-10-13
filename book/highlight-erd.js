@@ -10,7 +10,7 @@ hljs.registerLanguage("erd", function (hljs) {
   };
   var special = {
     begin:
-      /entity|attribute|id|relation|one|exactly|multiple|required|optional/,
+      /entity|attribute|id|relation|one|exactly|multiple|required|optional|table|from|type/,
     className: "keyword",
   };
 
