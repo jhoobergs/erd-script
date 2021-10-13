@@ -2,7 +2,7 @@ use crate::ast::{Attribute, AttributeType, DataType};
 use crate::ast::{Expr, ForeignKey, Ident};
 use crate::erd::{ERDError, ERD};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt::Write;
 use std::iter::FromIterator;
@@ -335,6 +335,14 @@ impl PhysicalDescription {
     pub fn to_physical(&self) -> Physical {
         let mut tables: Vec<Table> = Vec::new();
         let mut constraints: Vec<Constraint> = Vec::new();
+
+        let mut entity_name_to_table_name: HashMap<Ident, Ident> = HashMap::new();
+        for t in self.tables.iter() {
+            if let TableDescription::Entity(e) = t {
+                entity_name_to_table_name.insert(e.entity.clone(), e.name.clone());
+            }
+        }
+
         for t in self.tables.iter() {
             tables.push(t.to_table(&self.erd));
 
@@ -349,7 +357,10 @@ impl PhysicalDescription {
                         constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
                             table_name: t.name(),
                             column_names: vec![foreign_key.attribute_name.clone()],
-                            other_table_name: other_entity.clone(),
+                            other_table_name: entity_name_to_table_name
+                                .get(&other_entity)
+                                .unwrap()
+                                .to_owned(),
                             other_table_column_names: self
                                 .erd
                                 .get_entity_ids(other_entity)
@@ -370,7 +381,10 @@ impl PhysicalDescription {
                             .collect();
                         constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
                             table_name: t.name(),
-                            other_table_name: member.clone(),
+                            other_table_name: entity_name_to_table_name
+                                .get(&member)
+                                .unwrap()
+                                .to_owned(),
                             other_table_column_names: column_names.clone(),
                             column_names,
                         }));
