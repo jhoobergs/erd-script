@@ -2,27 +2,38 @@ use crate::ast::{DataType, Ident};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SQL {
-    Access,
+    MSAccess,
     LibreOfficeBase,
 }
 
 impl SQL {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "ms_access" => Some(Self::MSAccess),
+            "libre_office_base" => Some(Self::LibreOfficeBase),
+            _ => None,
+        }
+    }
+}
+
+// The methods needed for SQL creation
+impl SQL {
     pub fn to_data_type(&self, data_type: &DataType) -> String {
         match self {
-            Self::Access => access::to_data_type(data_type),
+            Self::MSAccess => ms_access::to_data_type(data_type),
             Self::LibreOfficeBase => libre_office_base::to_data_type(data_type),
         }
     }
 
     pub fn to_column_ident(&self, ident: &Ident) -> String {
         match self {
-            Self::Access => access::to_column_ident(ident),
+            Self::MSAccess => ms_access::to_column_ident(ident),
             Self::LibreOfficeBase => libre_office_base::to_column_ident(ident),
         }
     }
 }
 
-mod access {
+mod ms_access {
     use crate::ast::{DataType, Ident};
 
     pub fn to_data_type(data_type: &DataType) -> String {
