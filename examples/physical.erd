@@ -20,7 +20,7 @@ entity Car
   attribute color type varchar(20)
   attribute price type float
 
-relation Ownership("Is owner")
+relation Ownership(Is owner)
   multiple optional Person
   multiple optional Car
   attribute since type datetime
