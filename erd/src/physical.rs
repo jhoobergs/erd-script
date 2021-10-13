@@ -96,7 +96,11 @@ impl RelationTableDescription {
         let members = relation.get_members();
         let primary_key_parts: Vec<_> = members
             .iter()
-            .flat_map(|e| erd.get_entity_ids(e.to_owned()))
+            .flat_map(|e| {
+                erd.get_entity_ids(e.to_owned())
+                    .into_iter()
+                    .map(move |a| a.renamed(format!("{}_{}", e, a.ident.to_string()).into()))
+            })
             .collect();
         Table {
             name: self.name.clone(),
@@ -363,9 +367,9 @@ impl PhysicalDescription {
                                 .to_owned(),
                             other_table_column_names: self
                                 .erd
-                                .get_entity_ids(other_entity)
+                                .get_entity_ids(other_entity.clone())
                                 .into_iter()
-                                .map(|a| a.get_ident().clone())
+                                .map(|a| a.get_ident())
                                 .collect(),
                         }));
                     }
@@ -373,7 +377,7 @@ impl PhysicalDescription {
                 TableDescription::Relation(r) => {
                     let relation = self.erd.get_relation(r.relation.clone()).unwrap();
                     for member in relation.get_members().iter() {
-                        let column_names: Vec<_> = self
+                        let other_table_column_names: Vec<_> = self
                             .erd
                             .get_entity_ids(member.clone())
                             .into_iter()
@@ -385,8 +389,11 @@ impl PhysicalDescription {
                                 .get(&member)
                                 .unwrap()
                                 .to_owned(),
-                            other_table_column_names: column_names.clone(),
-                            column_names,
+                            column_names: other_table_column_names
+                                .iter()
+                                .map(|n| format!("{}_{}", member, n).into())
+                                .collect(),
+                            other_table_column_names,
                         }));
                     }
                 }

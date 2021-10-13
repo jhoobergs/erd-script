@@ -45,6 +45,13 @@ impl Attribute {
     pub fn get_data_type(&self) -> Option<DataType> {
         self.datatype.to_owned()
     }
+    pub fn renamed(&self, new_name: Ident) -> Self {
+        Self {
+            ident: new_name,
+            r#type: self.r#type.clone(),
+            datatype: self.datatype.clone(),
+        }
+    }
 }
 
 impl Hash for Attribute {
