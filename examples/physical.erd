@@ -11,6 +11,10 @@ relation Mother
   one optional Person
   multiple optional Person
 
+relation Friends(Is friends with)
+  multiple optional Person
+  multiple optional Person
+
 entity Car
   id id type autoincrement
   attribute color type varchar(20)
@@ -28,5 +32,7 @@ foreign key mother for Mother
 table car from entity Car
 
 table ownership from relation Ownership
+
+table friendship from relation Friends
 
 // integer, float, boolean, varchar(len), date, time, datetime
