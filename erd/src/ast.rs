@@ -206,7 +206,7 @@ impl DataType {
             Self::Integer => "INTEGER".to_string(),
             Self::AutoIncrement => "AUTOINCREMENT".to_string(),
             Self::Float => "FLOAT".to_string(),
-            Self::Boolean => "BOOL".to_string(),
+            Self::Boolean => "YESNO".to_string(), // "BOOL".to_string(),
             Self::Date => "DATE".to_string(),
             Self::Time => "TIME".to_string(),
             Self::DateTime => "DATETIME".to_string(),
