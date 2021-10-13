@@ -25,15 +25,3 @@ relation SI(S-I)
 relation SC(S-C)
   multiple optional course
   multiple optional student
-
-table course from entity course
-foreign key institute for CI
-
-table institute from entity institute
-
-table student from entity student
-foreign key institute for SI
-
-table enrollment from relation SC
-
-// integer, float, boolean, varchar(len), date, time, datetime
