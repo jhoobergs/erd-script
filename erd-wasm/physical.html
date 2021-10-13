@@ -66,7 +66,7 @@
         height: 100%;
       }
 
-      #review #text {
+      #review #sql {
         font-size: 12px;
         font-family: monaco, courier, monospace;
         top: 0;
@@ -149,6 +149,7 @@
     </div>
     <div id="review">
       <div id="error"></div>
+      <pre id="sql"></pre>
     </div>
     <div id="status"></div>
     <script
@@ -248,7 +249,6 @@
           editor.getSession().getDocument().getValue(),
           dbmsEl.value
         );
-        console.log(physical_res);
         if (physical_res.Err) {
           if (physical_res.Err.ParsingError) {
             if (physical_res.Err.ParsingError.Known) {
@@ -278,11 +278,6 @@
       }
 
       function updateOutput(result) {
-        var text = reviewer.querySelector("#text");
-        if (text) {
-          reviewer.removeChild(text);
-        }
-
         if (!result) {
           return;
         }
@@ -300,10 +295,8 @@
         downloadSrcBtn.href = source_url;
         downloadSrcBtn.download = "source.erd";
 
-        let span = document.createElement("span");
-        span.setAttribute("id", "text");
-        span.innerHTML = result;
-        reviewer.appendChild(span);
+        //document.getElementById("sql").innerHTML = result;
+        sql_editor.setValue(result, -1)
       }
       resetBtn.addEventListener("click", (e) => {
         editor.getSession().setValue(exampleERD);
@@ -320,6 +313,13 @@
         lastHD = setTimeout(generateSQL, 1500);
       });
       dbmsEl.addEventListener("change", generateSQL);
+
+      let sql_editor = ace.edit("sql");
+      sql_editor.setOptions({
+        readOnly: true,
+        mode: "ace/mode/sql",
+        theme: "ace/theme/sqlserver"
+      });
     </script>
   </body>
 </html>
