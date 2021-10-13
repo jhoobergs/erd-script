@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ERD-script Online</title>
+    <title>ERD-script to physical Online</title>
     <style type="text/css" media="screen">
       body {
         overflow: hidden;
@@ -72,13 +72,13 @@
       #review #text {
         font-size: 12px;
         font-family: monaco, courier, monospace;
-        white-space: pre;
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         overflow: auto;
+        white-space: pre-wrap;
       }
 
       #review img {
@@ -150,12 +150,12 @@
     </div>
     <div id="status"></div>
     <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"
+      src="https://pagecdn.io/lib/ace/1.4.12/ace.js"
       type="text/javascript"
       charset="utf-8"
     ></script>
     <script type="module">
-      import init, { compile_erd } from "./pkg/erd_wasm.js";
+      import init, { compile_physical } from "./pkg/erd_wasm.js";
       init().then(() => {
         renderGraph();
       });
@@ -230,64 +230,35 @@ relation SC(S-C)
         reviewer.classList.add("working");
         reviewer.classList.remove("error");
 
-        let dot_res = compile_erd(editor.getSession().getDocument().getValue());
-        if (dot_res.Err) {
-          if (dot_res.Err.ParsingError) {
-            if (dot_res.Err.ParsingError.Known) {
+        let physical_res = compile_physical(
+          editor.getSession().getDocument().getValue()
+        );
+        console.log(physical_res);
+        if (physical_res.Err) {
+          if (physical_res.Err.ParsingError) {
+            if (physical_res.Err.ParsingError.Known) {
               show_error({
-                message: dot_res.Err.ParsingError.Known.join("\n"),
+                message: physical_res.Err.ParsingError.Known.join("\n"),
               });
             }
           }
-          if (dot_res.Err.ERDErrors) {
+          if (physical_res.Err.ERDErrors) {
             show_error({
-              message: dot_res.Err.ERDErrors.join("\n"),
+              message: physical_res.Err.ERDErrors.join("\n"),
+            });
+          }
+          if (physical_res.Err.PhysicalErrors) {
+            show_error({
+              message: physical_res.Err.PhysicalErrors.join("\n"),
             });
           }
         } else {
-          let dot = dot_res.Ok;
+          let sql = physical_res.Ok;
 
-          if (worker) {
-            worker.terminate();
-          }
-
-          worker = new Worker("full.render.js");
-          worker.addEventListener(
-            "message",
-            function (e) {
-              if (typeof e.data.error !== "undefined") {
-                var event = new CustomEvent("error", {
-                  detail: new Error(e.data.error.message),
-                });
-                worker.dispatchEvent(event);
-                return;
-              }
-              show_status("done", 500);
-              reviewer.classList.remove("working");
-              reviewer.classList.remove("error");
-              updateOutput(e.data.result);
-            },
-            false
-          );
-          worker.addEventListener(
-            "error",
-            function (e) {
-              show_error(e.detail);
-            },
-            false
-          );
-
-          show_status("rendering...");
-          var params = {
-            src: dot,
-            id: new Date().toJSON(),
-            options: {
-              files: [],
-              format: "svg",
-              engine: "neato",
-            },
-          };
-          worker.postMessage(params);
+          show_status("done", 500);
+          reviewer.classList.remove("working");
+          reviewer.classList.remove("error");
+          updateOutput(sql);
         }
       }
 
@@ -297,11 +268,6 @@ relation SC(S-C)
           reviewer.removeChild(text);
         }
 
-        var a = reviewer.querySelector("a");
-        if (a) {
-          reviewer.removeChild(a);
-        }
-
         if (!result) {
           return;
         }
@@ -309,52 +275,10 @@ relation SC(S-C)
         reviewer.classList.remove("working");
         reviewer.classList.remove("error");
 
-        var svg = parser.parseFromString(result, "image/svg+xml");
-        //get svg source.
-        var serializer = new XMLSerializer();
-        var source = serializer.serializeToString(svg);
-        //add name spaces.
-        if (
-          !source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)
-        ) {
-          source = source.replace(
-            /^<svg/,
-            '<svg xmlns="http://www.w3.org/2000/svg"'
-          );
-        }
-        if (!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)) {
-          source = source.replace(
-            /^<svg/,
-            '<svg xmlns:xlink="http://www.w3.org/1999/xlink"'
-          );
-        }
-        //add xml declaration
-        if (!source.startsWith("<?xml version")) {
-          source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-        }
-        // https://stackoverflow.com/questions/18925210/download-blob-content-using-specified-charset
-        //const blob = new Blob(["\ufeff", svg], {type: 'image/svg+xml;charset=utf-8'});
-        const url =
-          "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-        downloadBtn.href = url;
-        downloadBtn.download = "erd.svg";
-
-        const source_url =
-          "data:text;charset=utf-8," +
-          encodeURIComponent(editor.getSession().getDocument().getValue());
-        downloadSrcBtn.href = source_url;
-        downloadSrcBtn.download = "source.erd";
-
-        var a = document.createElement("a");
-        var svgEl = svg.documentElement;
-        a.appendChild(svgEl);
-        reviewer.appendChild(a);
-        /*svgPanZoom(svgEl, {
-               zoomEnabled: true,
-               controlIconsEnabled: true,
-               fit: true,
-               center: true,
-             });*/
+        let span = document.createElement("span");
+        span.setAttribute("id", "text");
+        span.innerHTML = result;
+        reviewer.appendChild(span);
       }
       resetBtn.addEventListener("click", (e) => {
         editor.getSession().setValue(exampleERD);
@@ -371,6 +295,5 @@ relation SC(S-C)
         lastHD = setTimeout(renderGraph, 1500);
       });
     </script>
-    <script src="viz.js" type="text/javascript" charset="utf-8"></script>
   </body>
 </html>
