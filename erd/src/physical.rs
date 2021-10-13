@@ -484,3 +484,52 @@ pub enum PhysicalError {
     ForeignKeyToEntityInTable(Ident, Ident), // Entity, Table
     ImpossibleForeignKey(Ident, Ident),      // Entity, Table
 }
+
+impl std::fmt::Display for PhysicalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateTableName(i) => write!(f, "Table name {} is used multiple times.", i),
+            Self::DuplicateColumnNameInTable(i, e) => {
+                write!(f, "Multiple columns named {} in table {}.", i, e)
+            }
+            Self::UnknownEntityOrRelationInTable(e, r) => {
+                write!(f, "Unknown entity or relation {} in table {}.", e, r)
+            }
+            Self::ConvertedMoreThanOnce(e) => {
+                write!(
+                    f,
+                    "Relation or entity {} is converted more than once to a table.",
+                    e
+                )
+            }
+            Self::ForgottenEntityOrRelation(e) => {
+                write!(
+                    f,
+                    "Relation or entity {} is not converted to the physical representation.",
+                    e
+                )
+            }
+            Self::UnsupportedRelationDegree(e) => {
+                write!(
+                    f,
+                    "Relation {} has a degree different from 2 and that is (currently) not supported. Please convert the relation to relations of degree 2.",
+                    e
+                )
+            }
+            Self::ImpossibleForeignKey(e, t) => {
+                write!(
+                    f,
+                    "It is impossible to create table {} with foreign key {}.",
+                    t, e
+                )
+            }
+            Self::ForeignKeyToEntityInTable(e, t) => {
+                write!(
+                    f,
+                    "You created a foreign key to the entity {} in table {} instead of to a relation.",
+                    e, t
+                )
+            }
+        }
+    }
+}
