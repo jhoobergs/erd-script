@@ -129,6 +129,9 @@
         <select>
           <option value="ms_access" selected>MS Access</option>
           <option value="libre_office_base">LibreOffice Base</option>
+          <option value="mysql">MySQL</option>
+          <option value="postgresql">PostgreSQL</option>
+          <option value="mssql">MSSQL</option>
         </select>
       </label>
       <label>
@@ -296,7 +299,7 @@
         downloadSrcBtn.download = "source.erd";
 
         //document.getElementById("sql").innerHTML = result;
-        sql_editor.setValue(result, -1)
+        sql_editor.setValue(result, -1);
       }
       resetBtn.addEventListener("click", (e) => {
         editor.getSession().setValue(exampleERD);
@@ -318,7 +321,7 @@
       sql_editor.setOptions({
         readOnly: true,
         mode: "ace/mode/sql",
-        theme: "ace/theme/sqlserver"
+        theme: "ace/theme/sqlserver",
       });
     </script>
   </body>
