@@ -80,6 +80,25 @@ impl ERD {
 
         errors
     }
+
+    // Vec<(Relation/Entity, attribute)>
+    pub fn get_missing_datatypes(&self) -> Vec<(Ident, Ident)> {
+        self.entities
+            .iter()
+            .flat_map(|e| {
+                e.attributes
+                    .iter()
+                    .filter(|a| a.datatype.is_none())
+                    .map(move |a| (e.name.to_owned(), a.ident.to_owned()))
+            })
+            .chain(self.relations.iter().flat_map(|r| {
+                r.attributes
+                    .iter()
+                    .filter(|a| a.datatype.is_none())
+                    .map(move |a| (r.name.to_owned(), a.ident.to_owned()))
+            }))
+            .collect()
+    }
 }
 
 impl ERD {
