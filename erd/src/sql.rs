@@ -6,6 +6,7 @@ pub enum SQL {
     LibreOfficeBase,
     MySQL,
     PostgreSQL,
+    MSSQL,
 }
 
 impl SQL {
@@ -15,6 +16,7 @@ impl SQL {
             "libre_office_base" => Some(Self::LibreOfficeBase),
             "mysql" => Some(Self::MySQL),
             "postgresql" => Some(Self::PostgreSQL),
+            "mssql" => Some(Self::MSSQL),
             _ => None,
         }
     }
@@ -28,6 +30,7 @@ impl SQL {
             Self::LibreOfficeBase => libre_office_base::to_data_type(data_type),
             Self::MySQL => mysql::to_data_type(data_type),
             Self::PostgreSQL => postgresql::to_data_type(data_type),
+            Self::MSSQL => mssql::to_data_type(data_type),
         }
     }
 
@@ -37,6 +40,7 @@ impl SQL {
             Self::LibreOfficeBase => libre_office_base::to_column_ident(ident),
             Self::MySQL => mysql::to_column_ident(ident),
             Self::PostgreSQL => postgresql::to_column_ident(ident),
+            Self::MSSQL => mssql::to_column_ident(ident),
         }
     }
 }
@@ -109,6 +113,26 @@ mod postgresql {
         match data_type {
             DataType::Integer => "INTEGER".to_string(),
             DataType::AutoIncrement => "SERIAL".to_string(),
+            DataType::Float => "FLOAT".to_string(),
+            DataType::Boolean => "BOOLEAN".to_string(),
+            DataType::Date => "DATE".to_string(),
+            DataType::Time => "TIME".to_string(),
+            DataType::DateTime => "DATETIME".to_string(),
+            DataType::Varchar(n) => format!("VARCHAR({})", n),
+        }
+    }
+    pub fn to_column_ident(ident: &Ident) -> String {
+        ident.to_string()
+    }
+}
+
+mod mssql {
+    use crate::ast::{DataType, Ident};
+
+    pub fn to_data_type(data_type: &DataType) -> String {
+        match data_type {
+            DataType::Integer => "INTEGER".to_string(),
+            DataType::AutoIncrement => "INTEGER IDENTITY(1,1)".to_string(),
             DataType::Float => "FLOAT".to_string(),
             DataType::Boolean => "BOOLEAN".to_string(),
             DataType::Date => "DATE".to_string(),
