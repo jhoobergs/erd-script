@@ -274,7 +274,12 @@ impl PhysicalDescription {
 
 impl PhysicalDescription {
     fn validate(&self) -> Vec<PhysicalError> {
-        let mut errors = Vec::new();
+        let mut errors: Vec<_> = self
+            .erd
+            .get_missing_datatypes()
+            .into_iter()
+            .map(|(e, a)| PhysicalError::MissingDataTypeFromAttributeInEntityOrRelation(e, a))
+            .collect();
         let mut converted_entities_relations: HashSet<Ident> = HashSet::new();
         let mut table_names: HashSet<Ident> = HashSet::new();
         for t in self.tables.iter() {
@@ -489,6 +494,7 @@ pub enum PhysicalError {
     UnsupportedRelationDegree(Ident),
     ForeignKeyToEntityInTable(Ident, Ident), // Entity, Table
     ImpossibleForeignKey(Ident, Ident),      // Entity, Table
+    MissingDataTypeFromAttributeInEntityOrRelation(Ident, Ident), // Entity/Relation, Attribute
 }
 
 impl std::fmt::Display for PhysicalError {
@@ -534,6 +540,13 @@ impl std::fmt::Display for PhysicalError {
                     f,
                     "You created a foreign key to the entity {} in table {} instead of to a relation.",
                     e, t
+                )
+            }
+            Self::MissingDataTypeFromAttributeInEntityOrRelation(er, a) => {
+                write!(
+                    f,
+                    "Attribute {} of relation or entity {} has no datatype specified.",
+                    a, er
                 )
             }
         }
