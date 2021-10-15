@@ -96,7 +96,7 @@ impl RelationTableDescription {
         let relation = erd.get_relation(self.relation.clone()).unwrap();
         let members = relation.get_members();
         let mut used_members: HashSet<Ident> = HashSet::new();
-        let primary_key_parts: Vec<_> = members
+        let foreign_key_parts: Vec<_> = members
             .iter()
             .flat_map(|e| {
                 let postfix = if used_members.contains(&e) {
@@ -110,13 +110,20 @@ impl RelationTableDescription {
                 })
             })
             .collect();
+        let primary_key_parts: Vec<_> = foreign_key_parts
+            .clone()
+            .into_iter()
+            .chain(erd.get_relation_ids(self.relation.clone()).into_iter())
+            .collect();
 
         Table {
             name: self.name.clone(),
-            columns: erd
-                .get_relation_attributes(self.relation.clone())
+            columns: foreign_key_parts
                 .into_iter()
-                .chain(primary_key_parts.clone().into_iter())
+                .chain(
+                    erd.get_relation_attributes(self.relation.clone())
+                        .into_iter(),
+                )
                 .map(|c| TableColumn {
                     name: c.get_ident(),
                     datatype: c.get_data_type().unwrap().foreign_key_type(),
