@@ -118,6 +118,16 @@ impl ERD {
         }
     }
 
+    pub fn get_relation_ids(&self, name: Ident) -> Vec<Attribute> {
+        self.get_relation_attributes(name)
+            .into_iter()
+            .filter_map(|c| match c.get_type() {
+                crate::ast::AttributeType::Normal => None,
+                crate::ast::AttributeType::Key => Some(c.to_owned()),
+            })
+            .collect()
+    }
+
     pub fn get_entity_attributes(&self, name: Ident) -> Vec<Attribute> {
         if let Some(e) = self.entities.iter().find(|e| e.name == name) {
             e.attributes.clone()
