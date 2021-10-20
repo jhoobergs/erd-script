@@ -59,11 +59,12 @@ impl EntityTableDescription {
                     let other_member = erd
                         .get_relation(c.relation.to_owned())
                         .unwrap()
-                        .find_other_member(self.name.clone());
+                        .find_other_member(self.entity.clone());
                     erd.get_entity_ids(other_member)
                         .into_iter()
-                        .map(move |a| Attribute {
-                            ident: c.attribute_name.clone(),
+                        .zip(c.attribute_names.iter())
+                        .map(move |(a, a_name)| Attribute {
+                            ident: a_name.clone(),
                             r#type: AttributeType::Normal,
                             datatype: a.get_data_type().map(|d| d.foreign_key_type()),
                         })
@@ -311,14 +312,16 @@ impl PhysicalDescription {
                             .into_iter()
                             .map(|a| a.get_ident()),
                     );
-                    for foreign_key in et.foreign_keys.iter() {
-                        if column_names.contains(&foreign_key.attribute_name) {
-                            errors.push(PhysicalError::DuplicateColumnNameInTable(
-                                foreign_key.attribute_name.clone(),
-                                t.name(),
-                            ));
-                        } else {
-                            column_names.insert(foreign_key.attribute_name.clone());
+                    for foreign_key in et.foreign_keys.iter() { // TODO: Check if amount of keys equals amount of PKs
+                        for name in foreign_key.attribute_names.iter() {
+                            if column_names.contains(&name) {
+                                errors.push(PhysicalError::DuplicateColumnNameInTable(
+                                    name.clone(),
+                                    t.name(),
+                                ));
+                            } else {
+                                column_names.insert(name.clone());
+                            }
                         }
                         let relation = self.erd.get_relation(foreign_key.relation.clone());
                         if let Some(r) = relation {
@@ -383,10 +386,10 @@ impl PhysicalDescription {
                             .erd
                             .get_relation(foreign_key.relation.clone())
                             .unwrap()
-                            .find_other_member(t.name()); // TODO renamings? & more than degree 2
+                            .find_other_member(et.entity.clone()); // TODO renamings? & more than degree 2
                         constraints.push(Constraint::ForeignKey(ForeignKeyConstraint {
                             table_name: t.name(),
-                            column_names: vec![foreign_key.attribute_name.clone()],
+                            column_names: foreign_key.attribute_names.clone(),
                             other_table_name: entity_name_to_table_name
                                 .get(&other_entity)
                                 .unwrap()
