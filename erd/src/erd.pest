@@ -18,7 +18,8 @@ optionality = { "optional" | "required" }
 
 expression = { entity | relation | entity_table | relation_table }
 
-foreign = { "foreign" ~ "key" ~ ident ~ "for" ~ ident }
+foreign_keys = { ident ~ ("," ~ ident)* }
+foreign = { "foreign" ~ "key" ~ foreign_keys ~ "for" ~ ident }
 table_attribute = _{ foreign }
 entity_table = { !relation_table ~ "table" ~ ident ~ "from" ~ "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ table_attribute)* }
 relation_table = { "table" ~ ident ~ "from" ~ "relation" ~ ident }
