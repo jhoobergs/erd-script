@@ -25,8 +25,8 @@ pub enum ParserExpr {
         Vec<(String, String, String)>,
         Vec<(String, String, Option<String>)>,
     ),
-    /// (name, entity, Vec<fk_name, fk_rel>)
-    EntityTable(String, String, Vec<(String, String)>),
+    /// (name, entity, Vec<fk_names, fk_rel>)
+    EntityTable(String, String, Vec<(Vec<String>, String)>),
     /// (name, relation
     RelationTable(String, String),
 }
@@ -183,10 +183,14 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                 match pair.as_rule() {
                     Rule::foreign => {
                         let mut pairs = pair.into_inner();
-                        foreign_keys.push((
-                            pairs.next().unwrap().as_str().to_string(),
-                            pairs.next().unwrap().as_str().to_string(),
-                        ));
+                        let names = pairs
+                            .next()
+                            .unwrap()
+                            .into_inner()
+                            .map(|pair| pair.as_str().to_string())
+                            .collect::<Vec<_>>();
+
+                        foreign_keys.push((names, pairs.next().unwrap().as_str().to_string()));
                     }
                     _ => unreachable!(),
                 }

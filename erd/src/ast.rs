@@ -144,14 +144,14 @@ impl std::convert::From<(String, String, String)> for RelationMember {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForeignKey {
-    pub attribute_name: Ident,
+    pub attribute_names: Vec<Ident>,
     pub relation: Ident,
 }
 
-impl std::convert::From<(String, String)> for ForeignKey {
-    fn from((attr, relation): (String, String)) -> Self {
+impl std::convert::From<(Vec<String>, String)> for ForeignKey {
+    fn from((attrs, relation): (Vec<String>, String)) -> Self {
         Self {
-            attribute_name: attr.into(),
+            attribute_names: attrs.into_iter().map(|a| a.into()).collect(),
             relation: relation.into(),
         }
     }
