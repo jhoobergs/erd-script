@@ -4,8 +4,9 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
+datatype = { "integer" | "autoincrement" | "float" | "boolean" | (!"datetime" ~ "date") | "time" | "datetime" | "varchar(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" }
 attribute_prefix = { "attribute" | "id" }
-attribute = { attribute_prefix ~ ident } 
+attribute = { attribute_prefix ~ ident ~ ("type" ~ datatype)? } 
 entity = { "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ attribute)* }
 
 relation_name = {  (!")" ~ ANY)* }
@@ -15,7 +16,13 @@ member = { cardinality ~ optionality ~ ident }
 cardinality = { "multiple" | "one" | ("exactly(" ~ ASCII_DIGIT+ ~ ")" ) }
 optionality = { "optional" | "required" }
 
-expression = { entity | relation }
+expression = { entity | relation | entity_table | relation_table }
+
+foreign_keys = { ident ~ ("," ~ ident)* }
+foreign = { "foreign" ~ "key" ~ foreign_keys ~ "for" ~ ident }
+table_attribute = _{ foreign }
+entity_table = { !relation_table ~ "table" ~ ident ~ "from" ~ "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ table_attribute)* }
+relation_table = { "table" ~ ident ~ "from" ~ "relation" ~ ident }
 
 erd = _{ SOI ~ "\n"* ~ expression ~ ("\n"{2,} ~ expression)* ~ "\n"* ~ EOI }
 

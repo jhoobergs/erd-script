@@ -1,16 +1,18 @@
 // Modelled after https://graphviz.org/Gallery/undirected/ER.html
 
 entity course
-  attribute name
-  id code
+  attribute name type varchar(50)
+  id code type autoincrement 
 
 entity institute
-  attribute name
+  id id type autoincrement
+  attribute name type varchar(50)
 
 entity student
-  attribute name
-  attribute number
-  attribute grade
+  id id type autoincrement
+  attribute name type varchar(50)
+  attribute number type integer
+  attribute grade type integer
 
 relation CI(C-I)
   one required institute

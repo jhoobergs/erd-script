@@ -16,15 +16,19 @@ pub struct ParserNode<'i> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParserExpr {
-    /// (Name, Vec<("id" | "attribute", Name)> )
-    Entity(String, Vec<(String, String)>),
-    /// (Name, Optional label, Vec<RelationMembers>, Vec<("id" | "attribute", Name)>)
+    /// (Name, Vec<("id" | "attribute", Name, Option<type>)> )
+    Entity(String, Vec<(String, String, Option<String>)>),
+    /// (Name, Optional label, Vec<RelationMembers>, Vec<("id" | "attribute", Name, Option<type>)>)
     Relation(
         String,
         Option<String>,
         Vec<(String, String, String)>,
-        Vec<(String, String)>,
+        Vec<(String, String, Option<String>)>,
     ),
+    /// (name, entity, Vec<fk_names, fk_rel>)
+    EntityTable(String, String, Vec<(Vec<String>, String)>),
+    /// (name, relation
+    RelationTable(String, String),
 }
 
 impl<'i> std::convert::From<ParserNode<'i>> for ast::Expr {
@@ -45,6 +49,12 @@ impl<'i> std::convert::From<ParserExpr> for ast::Expr {
                 members.into_iter().map(|m| m.into()).collect(),
                 attributes.into_iter().map(|m| m.into()).collect(),
             ),
+            ParserExpr::EntityTable(name, er, foreign_keys) => ast::Expr::EntityTable(
+                name.into(),
+                er.into(),
+                foreign_keys.into_iter().map(|f| f.into()).collect(),
+            ),
+            ParserExpr::RelationTable(name, er) => ast::Expr::RelationTable(name.into(), er.into()),
         }
     }
 }
@@ -111,6 +121,7 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                 attributes.push((
                     pairs.next().unwrap().as_str().to_string(),
                     pairs.next().unwrap().as_str().to_string(),
+                    pairs.next().map(|pair| pair.as_str().to_string()),
                 ))
             }
 
@@ -148,6 +159,7 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
                         attributes.push((
                             pairs.next().unwrap().as_str().to_string(),
                             pairs.next().unwrap().as_str().to_string(),
+                            pairs.next().map(|pair| pair.as_str().to_string()),
                         ))
                     }
                     _ => unreachable!(),
@@ -156,6 +168,48 @@ fn consume_expression(expression: Pair<Rule>) -> Result<ParserNode, Vec<Error<Ru
 
             Ok(ParserNode {
                 expr: ParserExpr::Relation(name, label, members, attributes),
+                span: pair.as_span(),
+            })
+        }
+        Rule::entity_table => {
+            let mut foreign_keys = Vec::new();
+            let mut pairs = pair.into_inner().peekable();
+            let pair = pairs.next().unwrap();
+            let name = pair.as_str().to_string();
+            let pair = pairs.next().unwrap();
+            let entity = pair.as_str().to_string();
+
+            for pair in pairs {
+                match pair.as_rule() {
+                    Rule::foreign => {
+                        let mut pairs = pair.into_inner();
+                        let names = pairs
+                            .next()
+                            .unwrap()
+                            .into_inner()
+                            .map(|pair| pair.as_str().to_string())
+                            .collect::<Vec<_>>();
+
+                        foreign_keys.push((names, pairs.next().unwrap().as_str().to_string()));
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            Ok(ParserNode {
+                expr: ParserExpr::EntityTable(name, entity, foreign_keys),
+                span: pair.as_span(),
+            })
+        }
+        Rule::relation_table => {
+            let mut pairs = pair.into_inner().peekable();
+            let pair = pairs.next().unwrap();
+            let name = pair.as_str().to_string();
+            let pair = pairs.next().unwrap();
+            let relation = pair.as_str().to_string();
+
+            Ok(ParserNode {
+                expr: ParserExpr::RelationTable(name, relation),
                 span: pair.as_span(),
             })
         }

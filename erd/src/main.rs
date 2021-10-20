@@ -1,5 +1,6 @@
 use clap::{AppSettings, Clap};
 use erd_script::parser::ConsumeError;
+use erd_script::sql::SQL;
 use std::convert::TryInto;
 
 /// Compile an erd-script file to an svg
@@ -34,9 +35,19 @@ fn compile_dot(dot: &erd_script::dot::Graph) -> std::io::Result<std::process::Ou
 fn main() {
     let opts: Opts = Opts::parse();
     let ast = parse_file(&std::path::Path::new(&opts.file_path)).expect("Failed parsing file");
-    let erd: erd_script::erd::ERD = ast.try_into().expect("Error");
-    let output = compile_dot(&erd.to_dot()).expect("failed converting with dot");
+    let physical: erd_script::physical::PhysicalDescription = ast.try_into().expect("Error");
+
+    let mut s = String::new();
+    physical
+        .to_physical()
+        .write_sql_create(&mut s, SQL::LibreOfficeBase);
+    println!("{}\n", s);
+
+    let output = compile_dot(&physical.to_dot()).expect("failed converting with dot");
     std::fs::write(opts.output_path, output.stdout).expect("failed writing svg");
+    if !output.stderr.is_empty() {
+        println!("Error: {:#?}", std::str::from_utf8(&output.stderr));
+    }
 }
 
 #[cfg(test)]

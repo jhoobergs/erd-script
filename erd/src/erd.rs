@@ -1,4 +1,4 @@
-use crate::ast::{Attribute, Expr, Ident, RelationMember, RelationOptionality};
+use crate::ast::{Attribute, AttributeType, Expr, Ident, RelationMember, RelationOptionality};
 use crate::dot;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -11,19 +11,19 @@ pub struct ERD {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum FromScriptError {
+pub enum ERDFromScriptError {
     ParsingError(crate::parser::ConsumeError),
     ERDError(Vec<ERDError>),
 }
 
 impl ERD {
-    pub fn from_script(content: &str) -> Result<ERD, FromScriptError> {
+    pub fn from_script(content: &str) -> Result<ERD, ERDFromScriptError> {
         let pairs = crate::parser::parse_as_erd(&content).map_err(|e| {
-            FromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![e]))
+            ERDFromScriptError::ParsingError(crate::parser::ConsumeError::ERDParseError(vec![e]))
         })?;
         let asts =
-            crate::parser::consume_expressions(pairs).map_err(FromScriptError::ParsingError)?;
-        asts.try_into().map_err(FromScriptError::ERDError)
+            crate::parser::consume_expressions(pairs).map_err(ERDFromScriptError::ParsingError)?;
+        asts.try_into().map_err(ERDFromScriptError::ERDError)
     }
 }
 
@@ -80,6 +80,97 @@ impl ERD {
 
         errors
     }
+
+    // Vec<(Relation/Entity, attribute)>
+    pub fn get_missing_datatypes(&self) -> Vec<(Ident, Ident)> {
+        self.entities
+            .iter()
+            .flat_map(|e| {
+                e.attributes
+                    .iter()
+                    .filter(|a| a.datatype.is_none())
+                    .map(move |a| (e.name.to_owned(), a.ident.to_owned()))
+            })
+            .chain(self.relations.iter().flat_map(|r| {
+                r.attributes
+                    .iter()
+                    .filter(|a| a.datatype.is_none())
+                    .map(move |a| (r.name.to_owned(), a.ident.to_owned()))
+            }))
+            .collect()
+    }
+}
+
+impl ERD {
+    pub fn has_entity(&self, name: Ident) -> bool {
+        self.entities.iter().find(|e| e.name == name).is_some()
+    }
+
+    pub fn has_relation(&self, name: Ident) -> bool {
+        self.relations.iter().find(|e| e.name == name).is_some()
+    }
+
+    pub fn get_relation_attributes(&self, name: Ident) -> Vec<Attribute> {
+        if let Some(r) = self.relations.iter().find(|r| r.name == name) {
+            r.attributes.clone()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn get_relation_ids(&self, name: Ident) -> Vec<Attribute> {
+        self.get_relation_attributes(name)
+            .into_iter()
+            .filter_map(|c| match c.get_type() {
+                crate::ast::AttributeType::Normal => None,
+                crate::ast::AttributeType::Key => Some(c.to_owned()),
+            })
+            .collect()
+    }
+
+    pub fn get_entity_attributes(&self, name: Ident) -> Vec<Attribute> {
+        if let Some(e) = self.entities.iter().find(|e| e.name == name) {
+            e.attributes.clone()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn get_entity_ids(&self, name: Ident) -> Vec<Attribute> {
+        self.get_entity_attributes(name)
+            .into_iter()
+            .filter_map(|c| match c.get_type() {
+                crate::ast::AttributeType::Normal => None,
+                crate::ast::AttributeType::Key => Some(c.to_owned()),
+            })
+            .collect()
+    }
+
+    pub fn get_idents(&self) -> HashSet<Ident> {
+        self.entities
+            .iter()
+            .map(|e| e.name.clone())
+            .chain(self.relations.iter().map(|e| e.name.clone()))
+            .collect()
+    }
+
+    pub fn get_relation(&self, name: Ident) -> Option<Relation> {
+        self.relations
+            .iter()
+            .find(|e| e.name == name)
+            .map(|a| a.to_owned())
+    }
+
+    pub fn get_relation_attribute(&self, name: Ident, attribute: Ident) -> Option<Attribute> {
+        self.get_relation(name)
+            .map(|r| {
+                r.attributes
+                    .clone()
+                    .into_iter()
+                    .find(|a| a.get_ident() == attribute)
+            })
+            .flatten()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -98,7 +189,7 @@ impl Attribute {
         let attribute_name: String = self.get_ident().into();
         attributes.push(dot::AListItem {
             key: "label".into(),
-            value: if let Attribute::Key(_) = self {
+            value: if let AttributeType::Key = self.get_type() {
                 format!("<<U>{}</U>>", attribute_name)
             } else {
                 attribute_name.clone()
@@ -167,6 +258,46 @@ pub struct Relation {
     label: Option<String>,
     members: Vec<RelationMember>,
     attributes: Vec<Attribute>,
+}
+
+impl Relation {
+    pub fn name(&self) -> Ident {
+        return self.name.clone();
+    }
+
+    pub fn degree(&self) -> usize {
+        self.members.len()
+    }
+
+    pub fn can_work_with_foreign_key(&self, entity: Ident) -> bool {
+        let mut nb_more_than_one = 0;
+        for member in self.members.iter() {
+            match member.cardinality {
+                crate::ast::RelationCardinality::One => (),
+                _ => nb_more_than_one += 1,
+            }
+        }
+        self.degree() == 2
+            && nb_more_than_one < 2
+            && self
+                .members
+                .iter()
+                .find(|m| m.entity != entity)
+                .map(|m| m.cardinality == crate::ast::RelationCardinality::One)
+                .unwrap_or(false)
+    }
+
+    pub fn find_other_member(&self, entity: Ident) -> Ident {
+        self.members
+            .iter()
+            .find(|m| m.entity != entity)
+            .map(|e| e.entity.clone())
+            .unwrap()
+    }
+
+    pub fn get_members(&self) -> Vec<Ident> {
+        self.members.iter().map(|e| e.entity.clone()).collect()
+    }
 }
 
 impl ToDot for Relation {

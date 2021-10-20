@@ -2,7 +2,7 @@ name: Github IO
 
 on:
   push:
-    branches: [main, ci]
+    branches: [main, ci, physical]
 
 env:
   CARGO_TERM_COLOR: always
@@ -26,18 +26,27 @@ jobs:
       - name: Run wasm pack
         run: wasm-pack build --target web
         working-directory: erd-wasm
-      - name: Move all to folder
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "0.4.12"
+      - run: mdbook build -d ../output
+        working-directory: book
+
+      - name: Move all file to live folder
         run: |
-          mkdir output
-          cp -r pkg output/pkg
-          cp index.html output
-          cp viz.js output
-          cp full.render.js output
-          rm output/pkg/.gitignore
-        working-directory: erd-wasm
+          mkdir live
+          cp -r ../erd-wasm/pkg live/pkg
+          cp ../erd-wasm/er.html live
+          cp ../erd-wasm/physical.html live
+          cp ../erd-wasm/viz.js live
+          cp ../erd-wasm/full.render.js live
+          rm live/pkg/.gitignore
+        working-directory: output
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.5
         with:
           BRANCH: gh-pages # The branch the action should deploy to.
-          FOLDER: erd-wasm/output # The folder the action should deploy.
+          FOLDER: output # The folder the action should deploy.
           CLEAN: true # Automatically remove deleted files from the deploy branch

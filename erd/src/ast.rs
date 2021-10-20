@@ -23,16 +23,33 @@ impl std::convert::From<Ident> for String {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Attribute {
-    Normal(Ident),
-    Key(Ident),
+pub enum AttributeType {
+    Normal,
+    Key,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Attribute {
+    pub ident: Ident,
+    pub r#type: AttributeType,
+    pub datatype: Option<DataType>,
 }
 
 impl Attribute {
     pub fn get_ident(&self) -> Ident {
-        match self {
-            Self::Normal(i) => i.to_owned(),
-            Self::Key(i) => i.to_owned(),
+        self.ident.to_owned()
+    }
+    pub fn get_type(&self) -> AttributeType {
+        self.r#type.to_owned()
+    }
+    pub fn get_data_type(&self) -> Option<DataType> {
+        self.datatype.to_owned()
+    }
+    pub fn renamed(&self, new_name: Ident) -> Self {
+        Self {
+            ident: new_name,
+            r#type: self.r#type.clone(),
+            datatype: self.datatype.clone(),
         }
     }
 }
@@ -43,13 +60,17 @@ impl Hash for Attribute {
     }
 }
 
-impl std::convert::From<(String, String)> for Attribute {
-    fn from((r#type, name): (String, String)) -> Self {
+impl std::convert::From<(String, String, Option<String>)> for Attribute {
+    fn from((r#type, name, datatype): (String, String, Option<String>)) -> Self {
         let ident = name.into();
-        match &r#type[..] {
-            "id" => Self::Key(ident),
-            "attribute" => Self::Normal(ident),
-            _ => unreachable!(),
+        Self {
+            ident,
+            r#type: match &r#type[..] {
+                "id" => AttributeType::Key,
+                "attribute" => AttributeType::Normal,
+                _ => unreachable!(),
+            },
+            datatype: datatype.map(|d| d.into()),
         }
     }
 }
@@ -122,9 +143,74 @@ impl std::convert::From<(String, String, String)> for RelationMember {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForeignKey {
+    pub attribute_names: Vec<Ident>,
+    pub relation: Ident,
+}
+
+impl std::convert::From<(Vec<String>, String)> for ForeignKey {
+    fn from((attrs, relation): (Vec<String>, String)) -> Self {
+        Self {
+            attribute_names: attrs.into_iter().map(|a| a.into()).collect(),
+            relation: relation.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Expr {
     /// Matches an entity with attributes
     Entity(Ident, Vec<Attribute>),
     /// Matches a relation with an optional name, members and attributes
     Relation(Ident, Option<String>, Vec<RelationMember>, Vec<Attribute>),
+    /// Matches a table with a name based on an entity with some foreign key settings
+    EntityTable(Ident, Ident, Vec<ForeignKey>),
+    /// Matches a table with a name based on a relation
+    RelationTable(Ident, Ident),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataType {
+    Integer,
+    AutoIncrement,
+    Float,
+    Boolean,
+    Date,
+    Time,
+    DateTime,
+    Varchar(usize),
+}
+
+impl std::convert::From<String> for DataType {
+    fn from(s: String) -> Self {
+        if s.starts_with("varchar") {
+            Self::Varchar(s["varchar(".len()..(s.len() - 1)].parse().unwrap())
+        } else {
+            match &s[..] {
+                "integer" => Self::Integer,
+                "autoincrement" => Self::AutoIncrement,
+                "float" => Self::Float,
+                "boolean" => Self::Boolean,
+                "date" => Self::Date,
+                "time" => Self::Time,
+                "datetime" => Self::DateTime,
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
+impl DataType {
+    pub fn foreign_key_type(&self) -> DataType {
+        match self {
+            Self::Integer => Self::Integer,
+            Self::AutoIncrement => Self::Integer,
+            Self::Float => Self::Float,
+            Self::Boolean => Self::Boolean,
+            Self::Date => Self::Date,
+            Self::Time => Self::Time,
+            Self::DateTime => Self::DateTime,
+            Self::Varchar(n) => Self::Varchar(*n),
+        }
+    }
 }
