@@ -2,7 +2,7 @@ name: Github IO
 
 on:
   push:
-    branches: [main, ci, physical]
+    branches: [main, ci]
 
 env:
   CARGO_TERM_COLOR: always
