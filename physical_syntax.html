@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - An introduction to erd-script</title>
+        <title>Physical Syntax - An introduction to erd-script</title>
                 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="online.html"><strong aria-hidden="true">1.1.</strong> Online version</a></li></ol></li><li class="chapter-item expanded "><a href="erd_syntax.html"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="online.html"><strong aria-hidden="true">1.1.</strong> Online version</a></li></ol></li><li class="chapter-item expanded "><a href="erd_syntax.html"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html" class="active"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -143,45 +143,94 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p><code>erd-script</code> is a system to easily draw Entity-Relation (ER) diagrams.</p>
-<p>In this case 'easily' means without needing to pay attention to the drawing part itself. This implies that the writer only needs to think about specifying the right entities, relations, attributes and identifiers.</p>
-<p>It uses <code>graphviz</code> to actually draw to diagrams.</p>
-<p>You can try it out in the browser as described <a href="./online.html">here</a>.</p>
-<h2 id="sample"><a class="header" href="#sample">Sample</a></h2>
-<pre><code class="language-erd">// Modelled after https://graphviz.org/Gallery/undirected/ER.html
+                        <h1 id="syntax"><a class="header" href="#syntax">Syntax</a></h1>
+<p><code>erd-script</code> supports converting an ER-diagram to physical structure by generating the <code>sql</code> code to create the tables and constraints.</p>
+<p>To use this feature, extra syntax is needed.</p>
+<p>The following concepts are used:</p>
+<ul>
+<li>Tables</li>
+<li>Datatypes</li>
+</ul>
+<h2 id="datatypes"><a class="header" href="#datatypes">Datatypes</a></h2>
+<p>Columns in a table need to have a datatype, therefore you need to add a type to each attribute in the ER-diagram.</p>
+<pre><code class="language-erd">entity Person
+  id id type autoincrement
+  attribute name type varchar(100)
+  attribute alive type boolean
+</code></pre>
+<p>The following datatypes are supported</p>
+<ul>
+<li><code>autoincrement</code>: an integer that is filled in automatically</li>
+<li><code>boolean</code>: a boolean <code>true</code> / <code>false</code> value</li>
+<li><code>varchar(n)</code>: a text of maximum length <code>n</code></li>
+<li><code>integer</code>: an integer</li>
+<li><code>float</code>: a floating comma value</li>
+<li><code>datetime</code>: a date and time</li>
+</ul>
+<h2 id="tables"><a class="header" href="#tables">Tables</a></h2>
+<h3 id="entities"><a class="header" href="#entities">Entities</a></h3>
+<p>For each entitiy a table needs to be created with a command of the form <code>table &lt;table_name&gt; from entity &lt;entity_name&gt;</code>.</p>
+<pre><code class="language-erd">table person from entity Person
+</code></pre>
+<h3 id="relations"><a class="header" href="#relations">Relations</a></h3>
+<h4 id="foreign-keys"><a class="header" href="#foreign-keys">Foreign keys</a></h4>
+<p>Relations of type <code>1:1</code> or <code>1:n</code> can be implemented by adding a foreign key to the right table.</p>
+<pre><code class="language-erd">table person from entity Person
+foreign key father for Father
+foreign key mother for Mother
+</code></pre>
+<h4 id="extra-table"><a class="header" href="#extra-table">Extra table</a></h4>
+<p>Relations of type <code>m:n</code> need to be implemented by creating an extra table with a command of the form <code>table &lt;table_name&gt; from relation &lt;relation_name&gt;</code>.</p>
+<pre><code class="language-erd">table ownership from relation Ownership
+</code></pre>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre><code class="language-erd">entity Person
+  id id type autoincrement
+  attribute name type varchar(100)
+  attribute alive type boolean
 
-entity course
-  attribute name
-  id code
+relation Father
+  one optional Person // For now, this order is important, the one with 'one' should be the first for unary relations
+  multiple optional Person
 
-entity institute
-  attribute name
+relation Mother
+  one optional Person
+  multiple optional Person
 
-entity student
-  attribute name
-  attribute number
-  attribute grade
+relation Friends(Is friends with)
+  multiple optional Person
+  multiple optional Person
 
-relation CI(C-I)
-  one required institute
-  multiple optional course
+entity Car
+  id id type autoincrement
+  attribute color type varchar(20)
+  attribute price type float
 
-relation SI(S-I)
-  one required institute
-  multiple required student
+relation Ownership(Is owner)
+  multiple optional Person
+  multiple optional Car
+  attribute since type datetime
 
-relation SC(S-C)
-  multiple optional course
-  multiple optional student
+table person from entity Person
+foreign key father for Father
+foreign key mother for Mother
+
+table car from entity Car
+
+table ownership from relation Ownership
+
+table friendship from relation Friends
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                                                    <a rel="prev" href="erd_syntax.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
                         
-                                                    <a rel="next" href="online.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                                    <a rel="next" href="physical_importing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -191,8 +240,11 @@ relation SC(S-C)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                                    <a rel="prev" href="erd_syntax.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
                 
-                                    <a rel="next" href="online.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                    <a rel="next" href="physical_importing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                             </nav>

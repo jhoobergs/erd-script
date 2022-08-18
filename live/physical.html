@@ -1,0 +1,328 @@
+<!-- Based on https://github.com/dreampuf/GraphvizOnline/blob/master/index.html --->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ERD-script to physical Online</title>
+    <style type="text/css" media="screen">
+      body {
+        overflow: hidden;
+        margin: 0 0;
+      }
+
+      #editor {
+        margin: 0;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 50%;
+        left: 0;
+      }
+
+      #review {
+        margin: 0;
+        position: absolute;
+        top: 50px;
+        bottom: 0;
+        right: 0;
+        left: 50%;
+        overflow: scroll;
+      }
+
+      #options {
+        margin: 0;
+        position: fixed;
+        left: 50%;
+        width: 100%;
+      }
+
+      #options {
+        flex: 0 0 auto;
+        background: #eee;
+        border-bottom: 1px solid #ccc;
+        padding: 8px;
+        overflow: hidden;
+      }
+
+      #options label {
+        margin-right: 8px;
+      }
+
+      #shareurl {
+        display: none;
+      }
+
+      #status {
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+        display: block;
+        color: #fff;
+        z-index: 999;
+      }
+
+      #review svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      #review #sql {
+        font-size: 12px;
+        font-family: monaco, courier, monospace;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+
+      #review img {
+        display: block;
+        margin: 0 auto;
+      }
+
+      #review.working svg,
+      #output.error svg,
+      #review.working #text,
+      #output.error #text,
+      #review.working img,
+      #output.error img {
+        opacity: 0.4;
+      }
+
+      #review.error #error {
+        display: inherit;
+      }
+
+      #review #error {
+        white-space: pre-wrap;
+        display: none;
+        margin-top: 20px;
+        margin-left: 20px;
+        margin-right: 20px;
+        background: red;
+        color: white;
+        z-index: 1;
+      }
+
+      #download,
+      #reset,
+      #download_src {
+        font: bold 12px Arial;
+        text-decoration: none;
+        background-color: #eeeeee;
+        color: #333333;
+        padding: 2px 6px 2px 6px;
+        border-top: 1px solid #cccccc;
+        border-right: 1px solid #333333;
+        border-bottom: 1px solid #333333;
+        border-left: 1px solid #cccccc;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="editor"></pre>
+    <div id="options">
+      <label id="dbms">
+        DBMS:
+        <select>
+          <option value="ms_access" selected>MS Access</option>
+          <option value="libre_office_base">LibreOffice Base</option>
+          <option value="mysql">MySQL</option>
+          <option value="postgresql">PostgreSQL</option>
+          <option value="mssql">MSSQL</option>
+        </select>
+      </label>
+      <label>
+        <a href="#" target="_blank" id="download">Download SQL</a>
+      </label>
+      <label>
+        <a href="#" id="reset">Reset ERD</a>
+      </label>
+      <label>
+        <a href="#" target="_blank" id="download_src">Download Source</a>
+      </label>
+
+      <!-- <label>
+        <input type="button" value="Share" id="share">
+    </label>
+
+    <input type="input" value="" id="shareurl"> -->
+    </div>
+    <div id="review">
+      <div id="error"></div>
+      <pre id="sql"></pre>
+    </div>
+    <div id="status"></div>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"
+      type="text/javascript"
+      charset="utf-8"
+    ></script>
+    <script type="module">
+      import init, { compile_physical } from "./pkg/erd_wasm.js";
+      init().then(() => {
+        generateSQL();
+      });
+      const localstorage_key = "physical_code";
+      const exampleERD = `// Modelled after https://graphviz.org/Gallery/undirected/ER.html
+
+      entity course
+        attribute name type varchar(50)
+        id code type autoincrement
+
+      entity institute
+        id id type autoincrement
+        attribute name type varchar(50)
+
+      entity student
+        id id type autoincrement
+        attribute name type varchar(50)
+        attribute number type integer
+        attribute grade type integer
+
+      relation CI(C-I)
+        one required institute
+        multiple optional course
+
+      relation SI(S-I)
+        one required institute
+        multiple required student
+
+      relation SC(S-C)
+        multiple optional course
+        multiple optional student
+
+      table course from entity course
+      foreign key institute for CI
+
+      table institute from entity institute
+
+      table student from entity student
+      foreign key institute for SI
+
+      table enrollment from relation SC`;
+
+      let code = window.localStorage.getItem(localstorage_key);
+      if (!code) {
+        code = exampleERD;
+      }
+      document.getElementById("editor").innerHTML = code;
+
+      let el_status = document.getElementById("status");
+      let t_status = -1;
+      let errorEl = document.querySelector("#error");
+      let reviewer = document.getElementById("review"),
+        downloadBtn = document.getElementById("download"),
+        downloadSrcBtn = document.getElementById("download_src"),
+        resetBtn = document.getElementById("reset"),
+        dbmsEl = document.querySelector("#dbms select");
+      let parser = new DOMParser();
+      function show_status(text, hide) {
+        hide = hide || 0;
+        clearTimeout(t_status);
+        el_status.innerHTML = text;
+        if (hide) {
+          t_status = setTimeout(function () {
+            el_status.innerHTML = "";
+          }, hide);
+        }
+      }
+
+      function show_error(e) {
+        show_status("error", 500);
+        reviewer.classList.remove("working");
+        reviewer.classList.add("error");
+
+        var message =
+          e.message === undefined
+            ? "An error occurred while processing the input."
+            : e.message;
+        while (errorEl.firstChild) {
+          errorEl.removeChild(errorEl.firstChild);
+        }
+        errorEl.appendChild(document.createTextNode(message));
+      }
+      function generateSQL() {
+        reviewer.classList.add("working");
+        reviewer.classList.remove("error");
+
+        let physical_res = compile_physical(
+          editor.getSession().getDocument().getValue(),
+          dbmsEl.value
+        );
+        if (physical_res.Err) {
+          if (physical_res.Err.ParsingError) {
+            if (physical_res.Err.ParsingError.Known) {
+              show_error({
+                message: physical_res.Err.ParsingError.Known.join("\n"),
+              });
+            }
+          }
+          if (physical_res.Err.ERDErrors) {
+            show_error({
+              message: physical_res.Err.ERDErrors.join("\n"),
+            });
+          }
+          if (physical_res.Err.PhysicalErrors) {
+            show_error({
+              message: physical_res.Err.PhysicalErrors.join("\n"),
+            });
+          }
+        } else {
+          let sql = physical_res.Ok;
+
+          show_status("done", 500);
+          reviewer.classList.remove("working");
+          reviewer.classList.remove("error");
+          updateOutput(sql);
+        }
+      }
+
+      function updateOutput(result) {
+        if (!result) {
+          return;
+        }
+
+        reviewer.classList.remove("working");
+        reviewer.classList.remove("error");
+
+        const sql_url = "data:text;charset=utf-8," + encodeURIComponent(result);
+        downloadBtn.href = sql_url;
+        downloadBtn.download = "source.sql";
+
+        const source_url =
+          "data:text;charset=utf-8," +
+          encodeURIComponent(editor.getSession().getDocument().getValue());
+        downloadSrcBtn.href = source_url;
+        downloadSrcBtn.download = "source.erd";
+
+        //document.getElementById("sql").innerHTML = result;
+        sql_editor.setValue(result, -1);
+      }
+      resetBtn.addEventListener("click", (e) => {
+        editor.getSession().setValue(exampleERD);
+      });
+      let editor = ace.edit("editor");
+      let lastHD = -1;
+      editor.setTheme("ace/theme/monokai");
+      editor.getSession().on("change", function () {
+        window.localStorage.setItem(
+          localstorage_key,
+          editor.getSession().getDocument().getValue()
+        );
+        clearTimeout(lastHD);
+        lastHD = setTimeout(generateSQL, 1500);
+      });
+      dbmsEl.addEventListener("change", generateSQL);
+
+      let sql_editor = ace.edit("sql");
+      sql_editor.setOptions({
+        readOnly: true,
+        mode: "ace/mode/sql",
+        theme: "ace/theme/sqlserver",
+      });
+    </script>
+  </body>
+</html>

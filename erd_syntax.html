@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - An introduction to erd-script</title>
+        <title>ERD Syntax - An introduction to erd-script</title>
                 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="online.html"><strong aria-hidden="true">1.1.</strong> Online version</a></li></ol></li><li class="chapter-item expanded "><a href="erd_syntax.html"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="online.html"><strong aria-hidden="true">1.1.</strong> Online version</a></li></ol></li><li class="chapter-item expanded "><a href="erd_syntax.html" class="active"><strong aria-hidden="true">2.</strong> ERD Syntax</a></li><li class="chapter-item expanded "><a href="physical_syntax.html"><strong aria-hidden="true">3.</strong> Physical Syntax</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="physical_importing.html"><strong aria-hidden="true">3.1.</strong> Importing SQL</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -143,45 +143,72 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p><code>erd-script</code> is a system to easily draw Entity-Relation (ER) diagrams.</p>
-<p>In this case 'easily' means without needing to pay attention to the drawing part itself. This implies that the writer only needs to think about specifying the right entities, relations, attributes and identifiers.</p>
-<p>It uses <code>graphviz</code> to actually draw to diagrams.</p>
-<p>You can try it out in the browser as described <a href="./online.html">here</a>.</p>
-<h2 id="sample"><a class="header" href="#sample">Sample</a></h2>
-<pre><code class="language-erd">// Modelled after https://graphviz.org/Gallery/undirected/ER.html
-
-entity course
+                        <h1 id="syntax"><a class="header" href="#syntax">Syntax</a></h1>
+<p>In Entity-Relation diagrams the following concepts exist:</p>
+<ul>
+<li>Entities</li>
+<li>Relations</li>
+<li>Attributes</li>
+<li>Identifying attributes</li>
+<li>(more exist, but are not yet supported)</li>
+</ul>
+<h2 id="general-info"><a class="header" href="#general-info">General info</a></h2>
+<ul>
+<li>A <code>name</code> can only contain alphanumerical characters.</li>
+<li>A <code>label</code> can contain any character.</li>
+</ul>
+<h3 id="comments"><a class="header" href="#comments">Comments</a></h3>
+<p>You can add comments to the <code>erd</code> code by preceding it with <code>//</code>.</p>
+<pre><code class="language-erd">// This is a comment
+</code></pre>
+<h2 id="entities"><a class="header" href="#entities">Entities</a></h2>
+<p>An entity is defined with the keyword <code>entity</code> followed by a <code>name</code>.</p>
+<pre><code class="language-erd">entity course
+</code></pre>
+<h2 id="relations"><a class="header" href="#relations">Relations</a></h2>
+<p>A relation is defined with the keyword <code>relation</code> followed by a <code>name</code>.
+This relation definition needs to be followed by at least 2 lines specifying the members.</p>
+<h3 id="members"><a class="header" href="#members">Members</a></h3>
+<p>The syntax for a member is of the form <code>&lt;cardinality&gt; &lt;optionality&gt; &lt;entity_name&gt;</code></p>
+<p>Valid values are:</p>
+<ul>
+<li><code>cardinality</code>: <code>one</code> (maximum one), <code>multiple</code> (can be several), <code>exactly(n)</code> (exactly n times)</li>
+<li><code>optionality</code>: <code>required</code> or <code>optional</code></li>
+</ul>
+<pre><code class="language-erd">relation CI
+  one required institute // A course has to be taught in an institute and can only be taught in one institute
+  multiple optional course // An institute can teach multiple courses but does not need to teach one
+</code></pre>
+<p>It is possible to add a <code>label</code> to a relation by placing it between round brackets.</p>
+<pre><code class="language-erd">relation CI(C-I)
+  one required institute
+  multiple optional course
+</code></pre>
+<h2 id="attributes"><a class="header" href="#attributes">Attributes</a></h2>
+<p>Attributes can be added to entities and relations.</p>
+<p>The syntax for an attribute is of the form <code>&lt;type&gt; &lt;name&gt;</code> where type can be <code>id</code> or <code>attribute</code>.</p>
+<pre><code class="language-erd">entity course
   attribute name
   id code
 
 entity institute
   attribute name
 
-entity student
-  attribute name
-  attribute number
-  attribute grade
-
 relation CI(C-I)
   one required institute
   multiple optional course
-
-relation SI(S-I)
-  one required institute
-  multiple required student
-
-relation SC(S-C)
-  multiple optional course
-  multiple optional student
+  attribute year
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                                                    <a rel="prev" href="online.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
                         
-                                                    <a rel="next" href="online.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                                    <a rel="next" href="physical_syntax.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -191,8 +218,11 @@ relation SC(S-C)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                                    <a rel="prev" href="online.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
                 
-                                    <a rel="next" href="online.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                    <a rel="next" href="physical_syntax.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                             </nav>
