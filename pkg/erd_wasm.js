@@ -104,24 +104,10 @@ function takeObject(idx) {
 * @param {string} erd_script
 * @returns {any}
 */
-export function compile_erd(erd_script) {
+export function compile(erd_script) {
     var ptr0 = passStringToWasm0(erd_script, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len0 = WASM_VECTOR_LEN;
-    var ret = wasm.compile_erd(ptr0, len0);
-    return takeObject(ret);
-}
-
-/**
-* @param {string} erd_script
-* @param {string} sql_dbms
-* @returns {any}
-*/
-export function compile_physical(erd_script, sql_dbms) {
-    var ptr0 = passStringToWasm0(erd_script, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    var ptr1 = passStringToWasm0(sql_dbms, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len1 = WASM_VECTOR_LEN;
-    var ret = wasm.compile_physical(ptr0, len0, ptr1, len1);
+    var ret = wasm.compile(ptr0, len0);
     return takeObject(ret);
 }
 

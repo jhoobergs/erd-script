@@ -4,20 +4,13 @@
 * @param {string} erd_script
 * @returns {any}
 */
-export function compile_erd(erd_script: string): any;
-/**
-* @param {string} erd_script
-* @param {string} sql_dbms
-* @returns {any}
-*/
-export function compile_physical(erd_script: string, sql_dbms: string): any;
+export function compile(erd_script: string): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly compile_erd: (a: number, b: number) => number;
-  readonly compile_physical: (a: number, b: number, c: number, d: number) => number;
+  readonly compile: (a: number, b: number) => number;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
 }
