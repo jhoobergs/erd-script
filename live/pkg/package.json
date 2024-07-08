@@ -1,12 +1,15 @@
 {
   "name": "erd-wasm",
+  "type": "module",
   "version": "0.1.0",
   "files": [
     "erd_wasm_bg.wasm",
     "erd_wasm.js",
     "erd_wasm.d.ts"
   ],
-  "module": "erd_wasm.js",
+  "main": "erd_wasm.js",
   "types": "erd_wasm.d.ts",
-  "sideEffects": false
+  "sideEffects": [
+    "./snippets/*"
+  ]
 }
