@@ -1,12 +1,11 @@
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use erd_script::parser::ConsumeError;
 use erd_script::sql::SQL;
 use std::convert::TryInto;
 
 /// Compile an erd-script file to an svg
-#[derive(Clap)]
-#[clap(version = "1.0", author = "Jesse Hoobergs")]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
+#[command(version = "1.0", author = "Jesse Hoobergs")]
 struct Opts {
     /// The path to an erd-script file-Some input. Because this isn't an Option<T> it's required to be used
     file_path: String,

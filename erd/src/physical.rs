@@ -312,7 +312,8 @@ impl PhysicalDescription {
                             .into_iter()
                             .map(|a| a.get_ident()),
                     );
-                    for foreign_key in et.foreign_keys.iter() { // TODO: Check if amount of keys equals amount of PKs
+                    for foreign_key in et.foreign_keys.iter() {
+                        // TODO: Check if amount of keys equals amount of PKs
                         for name in foreign_key.attribute_names.iter() {
                             if column_names.contains(&name) {
                                 errors.push(PhysicalError::DuplicateColumnNameInTable(
@@ -358,9 +359,10 @@ impl PhysicalDescription {
             .difference(&converted_entities_relations)
             .collect();
         for item in forgotten.iter() {
-            errors.push(PhysicalError::ForgottenEntityOrRelation(
-                item.clone().clone(),
-            ));
+            errors.push(PhysicalError::ForgottenEntityOrRelation({
+                let reference: &Ident = *item;
+                reference.clone()
+            }));
         }
 
         errors

@@ -45,7 +45,7 @@ impl ERDCompileError {
 
 #[wasm_bindgen]
 pub fn compile_erd(erd_script: &str) -> JsValue {
-    JsValue::from_serde(
+    serde_wasm_bindgen::to_value(
         &erd_script::erd::ERD::from_script(erd_script)
             .map(|erd| erd.to_dot().to_string())
             .map_err(ERDCompileError::create),
@@ -80,7 +80,7 @@ impl PhysicalCompileError {
 #[wasm_bindgen]
 pub fn compile_physical(erd_script: &str, sql_dbms: &str) -> JsValue {
     if let Some(dbms) = SQL::from_str(sql_dbms) {
-        JsValue::from_serde(
+        serde_wasm_bindgen::to_value(
             &erd_script::physical::PhysicalDescription::from_script(erd_script)
                 .map(|physical| {
                     let mut s = String::new();
@@ -91,6 +91,6 @@ pub fn compile_physical(erd_script: &str, sql_dbms: &str) -> JsValue {
         )
         .unwrap_or(false.into())
     } else {
-        JsValue::from_serde(&PhysicalCompileError::InvalidDBMS).unwrap_or(false.into())
+        serde_wasm_bindgen::to_value(&PhysicalCompileError::InvalidDBMS).unwrap_or(false.into())
     }
 }
