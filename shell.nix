@@ -18,6 +18,7 @@ in
     openssl
     pkg-config
     rust-analyzer
+    graphviz
     (vscode-with-extensions.override {
       vscode = vscodium;
       vscodeExtensions = with vscode-extensions; [

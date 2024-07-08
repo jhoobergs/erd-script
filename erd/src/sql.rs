@@ -58,6 +58,12 @@ mod ms_access {
             DataType::Time => "TIME".to_string(),
             DataType::DateTime => "DATETIME".to_string(),
             DataType::Varchar(n) => format!("VARCHAR({})", n),
+
+            DataType::Varbinary(n) => format!("VARBINARY({n})"),
+            DataType::Blob => "LONGBINARY".to_string(),
+            DataType::Text => "TEXT".to_string(),
+            DataType::Uuid => "GUID".to_string(),
+            DataType::Decimal(m, d) => format!("DECIMAL({m}, {d})"),
         }
     }
     pub fn to_column_ident(ident: &Ident) -> String {
@@ -79,6 +85,12 @@ mod libre_office_base {
             DataType::Time => "TIME".to_string(),
             DataType::DateTime => "DATETIME".to_string(),
             DataType::Varchar(n) => format!("VARCHAR({})", n),
+
+            DataType::Varbinary(n) => format!("VARBINARY({n})"),
+            DataType::Blob => "BLOB".to_string(),
+            DataType::Text => "LONGVARCHAR".to_string(),
+            DataType::Uuid => "UUID".to_string(),
+            DataType::Decimal(m, d) => format!("DECIMAL({m}, {d})"),
         }
     }
     pub fn to_column_ident(ident: &Ident) -> String {
@@ -99,6 +111,11 @@ mod mysql {
             DataType::Time => "TIME".to_string(),
             DataType::DateTime => "DATETIME".to_string(),
             DataType::Varchar(n) => format!("VARCHAR({})", n),
+            DataType::Varbinary(n) => format!("VARBINARY({n})"),
+            DataType::Blob => "BLOB".to_string(),
+            DataType::Text => "TEXT".to_string(),
+            DataType::Uuid => "UUID".to_string(),
+            DataType::Decimal(m, d) => format!("DECIMAL({m}, {d})"),
         }
     }
     pub fn to_column_ident(ident: &Ident) -> String {
@@ -119,6 +136,11 @@ mod postgresql {
             DataType::Time => "TIME".to_string(),
             DataType::DateTime => "DATETIME".to_string(),
             DataType::Varchar(n) => format!("VARCHAR({})", n),
+            DataType::Varbinary(n) => format!("VARBIT({n})"),
+            DataType::Blob => "BLOB".to_string(),
+            DataType::Text => "TEXT".to_string(),
+            DataType::Uuid => "UUID".to_string(),
+            DataType::Decimal(m, d) => format!("DECIMAL({m}, {d})"),
         }
     }
     pub fn to_column_ident(ident: &Ident) -> String {
@@ -138,7 +160,12 @@ mod mssql {
             DataType::Date => "DATE".to_string(),
             DataType::Time => "TIME".to_string(),
             DataType::DateTime => "DATETIME".to_string(),
-            DataType::Varchar(n) => format!("VARCHAR({})", n),
+            DataType::Varchar(n) => format!("NVARCHAR({n})"),
+            DataType::Varbinary(n) => format!("VARBINARY({n})"),
+            DataType::Blob => "VARBINARY(max)".to_string(),
+            DataType::Text => "NVARCHAR(max)".to_string(),
+            DataType::Uuid => "UNIQUEIDENTIFIER".to_string(),
+            DataType::Decimal(m, d) => format!("DECIMAL({m}, {d})"),
         }
     }
     pub fn to_column_ident(ident: &Ident) -> String {

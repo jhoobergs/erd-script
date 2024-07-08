@@ -178,15 +178,35 @@ pub enum DataType {
     Date,
     Time,
     DateTime,
+    Uuid,
+    Text,
+    Blob,
     Varchar(usize),
+    Varbinary(usize),
+    /// (M, D)
+    /// M is the precision: total number of digits (. and - not counted)
+    /// D is the scale: the number of digits after the decimal point
+    Decimal(usize, usize),
 }
 
 impl std::convert::From<String> for DataType {
     fn from(s: String) -> Self {
         if s.starts_with("varchar") {
             Self::Varchar(s["varchar(".len()..(s.len() - 1)].parse().unwrap())
+        } else if s.starts_with("varbinary") {
+            Self::Varbinary(s["varbinary(".len()..(s.len() - 1)].parse().unwrap())
+        } else if s.starts_with("decimal") {
+            let mut comma = s.split(",");
+            let m = comma.next().unwrap()["decimal(".len()..].parse().unwrap();
+            let part2 = comma.next().unwrap();
+            let d = part2[..(part2.len() - 1)].trim().parse().unwrap();
+
+            Self::Decimal(m, d)
         } else {
             match &s[..] {
+                "uuid" => Self::Uuid,
+                "text" => Self::Text,
+                "blob" => Self::Blob,
                 "integer" => Self::Integer,
                 "autoincrement" => Self::AutoIncrement,
                 "float" => Self::Float,
@@ -211,6 +231,11 @@ impl DataType {
             Self::Time => Self::Time,
             Self::DateTime => Self::DateTime,
             Self::Varchar(n) => Self::Varchar(*n),
+            Self::Varbinary(n) => Self::Varbinary(*n),
+            Self::Blob => Self::Blob,
+            Self::Text => Self::Text,
+            Self::Uuid => Self::Uuid,
+            Self::Decimal(m, d) => Self::Decimal(*m, *d),
         }
     }
 }

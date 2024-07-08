@@ -1,6 +1,6 @@
 entity Person
   id id type autoincrement
-  attribute name type varchar(100)
+  attribute name type text
   attribute alive type boolean
   
 relation Father
@@ -16,9 +16,11 @@ relation Friends(Is friends with)
   multiple optional Person
 
 entity Car
-  id id type autoincrement
+  id id type uuid
   attribute color type varchar(20)
   attribute price type float
+  attribute dec_price type decimal(10, 2)
+  attribute image type blob
 
 relation Ownership(Is owner)
   multiple optional Person
