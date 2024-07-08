@@ -1,2 +1,3 @@
 [workspace]
 members = ["erd", "erd-wasm"]
+resolver = "2"
