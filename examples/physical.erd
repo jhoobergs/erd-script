@@ -17,6 +17,7 @@ relation Friends(Is friends with)
 
 entity Car
   id id type uuid
+  attribute brand type enum(volvo, BMW, ferrari, volkswagen)
   attribute color type varchar(20)
   attribute price type float
   attribute dec_price type decimal(10, 2)

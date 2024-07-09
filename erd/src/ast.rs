@@ -172,6 +172,7 @@ pub enum Expr {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataType {
     Integer,
+    SmallInteger,
     AutoIncrement,
     Float,
     Boolean,
@@ -187,6 +188,7 @@ pub enum DataType {
     /// M is the precision: total number of digits (. and - not counted)
     /// D is the scale: the number of digits after the decimal point
     Decimal(usize, usize),
+    Enum(Vec<String>),
 }
 
 impl std::convert::From<String> for DataType {
@@ -202,12 +204,17 @@ impl std::convert::From<String> for DataType {
             let d = part2[..(part2.len() - 1)].trim().parse().unwrap();
 
             Self::Decimal(m, d)
+        } else if s.starts_with("enum(") {
+            let part = &s["enum(".len()..(s.len() - 1)];
+            let elements: Vec<String> = part.split(",").map(|x| x.trim().to_string()).collect();
+            Self::Enum(elements)
         } else {
             match &s[..] {
                 "uuid" => Self::Uuid,
                 "text" => Self::Text,
                 "blob" => Self::Blob,
                 "integer" => Self::Integer,
+                "smallinteger" => Self::SmallInteger,
                 "autoincrement" => Self::AutoIncrement,
                 "float" => Self::Float,
                 "boolean" => Self::Boolean,
@@ -224,6 +231,7 @@ impl DataType {
     pub fn foreign_key_type(&self) -> DataType {
         match self {
             Self::Integer => Self::Integer,
+            Self::SmallInteger => Self::SmallInteger,
             Self::AutoIncrement => Self::Integer,
             Self::Float => Self::Float,
             Self::Boolean => Self::Boolean,
@@ -236,6 +244,7 @@ impl DataType {
             Self::Text => Self::Text,
             Self::Uuid => Self::Uuid,
             Self::Decimal(m, d) => Self::Decimal(*m, *d),
+            Self::Enum(m) => Self::Enum(m.to_owned()),
         }
     }
 }

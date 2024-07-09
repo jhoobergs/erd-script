@@ -4,7 +4,26 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-datatype = { "integer" | "autoincrement" | "float" | "boolean" | (!"datetime" ~ "date") | "time" | "datetime" | "blob" | "text" | "uuid" | "varchar(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" | "varbinary(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" | "decimal(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ "," ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" }
+datatype = { 
+    "integer" |
+    "smallinteger" | 
+    "autoincrement" | 
+    "float" | 
+    "boolean" | 
+    (!"datetime" ~ "date") | 
+    "time" | 
+    "datetime" | 
+    "blob" | 
+    "text" | 
+    "uuid" | 
+    "varchar(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" | 
+    "varbinary(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" | 
+    "decimal(" ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ "," ~ (!"0" ~ ASCII_DIGIT) ~ ASCII_DIGIT* ~ ")" | 
+    "enum(" ~ enum_item ~ ("," ~ enum_item)*  ~ ")"
+}
+not_comma_or_space = { !("," | " " | ")") ~ ANY }
+enum_item = { not_comma_or_space+ }
+
 attribute_prefix = { "attribute" | "id" }
 attribute = { attribute_prefix ~ ident ~ ("type" ~ datatype)? } 
 entity = { "entity" ~ ident ~ (!"\n\n" ~ "\n" ~ attribute)* }

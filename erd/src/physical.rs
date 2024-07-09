@@ -168,10 +168,15 @@ pub struct Table {
 
 impl Table {
     fn write_sql_create(&self, s: &mut String, sql: SQL) {
+        let mut additional_definitions = Vec::new();
+
         write!(s, "CREATE TABLE {} (\n", self.name);
         for col in self.columns.iter() {
             col.write_sql_create_lines(s, sql);
             write!(s, "\n");
+            if let Some(x) = sql.to_additional_definitions(&col.datatype) {
+                additional_definitions.push(x);
+            }
         }
         write!(
             s,
@@ -183,6 +188,12 @@ impl Table {
                 .join(","),
         );
         write!(s, ");");
+        if !additional_definitions.is_empty() {
+            for def in additional_definitions {
+                writeln!(s, "");
+                write!(s, "{}", def);
+            }
+        }
     }
 }
 
