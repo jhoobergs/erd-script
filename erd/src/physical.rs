@@ -68,6 +68,7 @@ impl EntityTableDescription {
                             r#type: AttributeType::Normal,
                             datatype: a.get_data_type().map(|d| d.foreign_key_type()),
                         })
+                        .chain(erd.get_relation_attributes(c.relation.clone()).into_iter())
                 }))
                 .map(|c| TableColumn {
                     name: c.get_ident(),
